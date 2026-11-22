@@ -10,9 +10,16 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .actions import ActionExecutor
 from .config import ConfigManager, HotboxConfig, MenuItem
-from .constants import HOLD_KEY_MAP, PLUGIN_DISPLAY_NAME, PLUGIN_NAME, PLUGIN_VERSION
+from .constants import (
+    HOLD_KEY_MAP,
+    PLUGIN_DISPLAY_NAME,
+    PLUGIN_NAME,
+    PLUGIN_VERSION,
+    TRIGGER_SPACE_RMB,
+)
 from .context import MaxContext, query_max_context
 from .geometry import Point2D
+from . import graphite_tools
 from .logger import get_logger
 from .state_machine import FullHotboxSessionState, HotboxStateMachine, RadialSessionState
 from .ui_hotbox import FullHotboxOverlay
@@ -60,6 +67,19 @@ class MaxHotboxController(QtCore.QObject):
                 "open_settings": self.open_settings,
                 "open_full_hotbox": self.open_full_hotbox_interactive,
                 "switch_to_quad_menu": lambda: self.set_enabled(False),
+                # Graphite self-contained selection tools & custom PySide6 parameter panels
+                "graphite_random_select": graphite_tools.run_random_select,
+                "graphite_random_select_settings": graphite_tools.open_random_select_panel,
+                "graphite_select_ngons": lambda: graphite_tools.run_select_by_sides(">", 4),
+                "graphite_select_by_sides_settings": graphite_tools.open_select_by_sides_panel,
+                "graphite_dot_loop": lambda: graphite_tools.run_dot_step("loop"),
+                "graphite_dot_loop_settings": lambda: graphite_tools.open_dot_step_panel("loop"),
+                "graphite_dot_ring": lambda: graphite_tools.run_dot_step("ring"),
+                "graphite_dot_ring_settings": lambda: graphite_tools.open_dot_step_panel("ring"),
+                "graphite_select_hard_edges": graphite_tools.run_select_hard_edges,
+                "graphite_select_hard_edges_settings": lambda: graphite_tools.open_angle_select_panel("hard_edges"),
+                "graphite_select_by_angle": graphite_tools.run_select_coplanar_faces,
+                "graphite_select_by_angle_settings": lambda: graphite_tools.open_angle_select_panel("coplanar"),
             },
         )
 
@@ -72,9 +92,10 @@ class MaxHotboxController(QtCore.QObject):
         self._menubar_action: QtGui.QAction | None = None
         self._hotbox_interactive_mode: bool = False
 
-        # Submenu hover dwell tracking
+        # Submenu & Back-to-Parent hover dwell tracking
         self._submenu_hover_key: str | None = None
         self._submenu_hover_since: float = 0.0
+        self._back_hover_since: float | None = None
 
         self._state = HotboxStateMachine(
             config_getter=lambda: self._config,
@@ -91,6 +112,7 @@ class MaxHotboxController(QtCore.QObject):
             on_hold_key_up=self._handle_hold_key_up,
             on_escape=self._handle_escape,
             on_backspace=self._handle_backspace,
+            on_lmb_while_radial=self._handle_lmb_while_radial,
             on_abort=self._handle_abort,
             hold_vk_getter=self._current_hold_vk,
             is_radial_active=lambda: self._state.radial_state is not None,
@@ -329,8 +351,13 @@ class MaxHotboxController(QtCore.QObject):
 
     # ---------------------------------------------------------- Hook Handlers
     def _handle_rmb_down(self, hwnd: int, trigger: str) -> bool:
+        # If Space already opened the 5-zone Full Hotbox, seamlessly switch into Maya Space+RMB radial
+        if trigger == TRIGGER_SPACE_RMB and self._state.hotbox_state is not None:
+            self._hotbox_interactive_mode = False
+            self._state.cancel()
         origin = _cursor_pos()
         self._submenu_hover_key = None
+        self._back_hover_since = None
         if self._state.begin_radial(trigger=trigger, origin=origin, source_hwnd=hwnd):
             self._track_timer.start()
             return True
@@ -339,6 +366,7 @@ class MaxHotboxController(QtCore.QObject):
     def _handle_rmb_up(self, _hwnd: int) -> bool:
         self._track_timer.stop()
         self._submenu_hover_key = None
+        self._back_hover_since = None
         self._state.end_radial(cursor=_cursor_pos(), execute=True)
         return True
 
@@ -363,18 +391,29 @@ class MaxHotboxController(QtCore.QObject):
     def _handle_escape(self) -> bool:
         self._track_timer.stop()
         self._submenu_hover_key = None
+        self._back_hover_since = None
         self._hotbox_interactive_mode = False
         self._state.cancel()
         return True
 
     def _handle_backspace(self) -> bool:
         self._submenu_hover_key = None
+        self._back_hover_since = None
         return self._state.step_back_submenu()
+
+    def _handle_lmb_while_radial(self) -> bool:
+        """Maya-style LMB tap while holding RMB immediately returns to parent submenu."""
+        self._submenu_hover_key = None
+        self._back_hover_since = None
+        if self._state.step_back_submenu():
+            return True
+        return False
 
     def _handle_abort(self, reason: str) -> None:
         self._logger.debug("Hotbox session aborted (%s)", reason)
         self._track_timer.stop()
         self._submenu_hover_key = None
+        self._back_hover_since = None
         self._hotbox_interactive_mode = False
         self._state.cancel()
 
@@ -383,6 +422,7 @@ class MaxHotboxController(QtCore.QObject):
         cursor = _cursor_pos()
         if self._state.radial_state is not None:
             self._state.update_radial_cursor(cursor)
+            self._check_back_dwell()
             self._check_submenu_dwell(cursor)
         elif self._state.hotbox_state is not None:
             hovered_item, is_opt = self._hotbox_overlay.hit_test_item(cursor)
@@ -393,6 +433,30 @@ class MaxHotboxController(QtCore.QObject):
             )
         else:
             self._track_timer.stop()
+
+    def _check_back_dwell(self) -> None:
+        rstate = self._state.radial_state
+        if rstate is None or rstate.hit.kind != "back" or not rstate.profile_stack:
+            if self._back_hover_since is not None:
+                self._back_hover_since = None
+                self._radial_overlay.set_back_dwell_progress(0.0)
+            return
+
+        dwell_sec = max(0.10, min(0.24, self._config.settings.submenu_dwell_ms / 1000.0 * 0.85))
+        now = time.monotonic()
+        if self._back_hover_since is None:
+            self._back_hover_since = now
+            self._radial_overlay.set_back_dwell_progress(0.08)
+            return
+
+        elapsed = now - self._back_hover_since
+        if elapsed >= dwell_sec:
+            self._back_hover_since = None
+            self._submenu_hover_key = None
+            self._radial_overlay.set_back_dwell_progress(0.0)
+            self._state.step_back_submenu()
+        else:
+            self._radial_overlay.set_back_dwell_progress(elapsed / dwell_sec)
 
     def _check_submenu_dwell(self, cursor: Point2D) -> None:
         rstate = self._state.radial_state

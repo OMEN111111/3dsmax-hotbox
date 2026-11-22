@@ -42,11 +42,19 @@ class RadialMenuOverlay(QtWidgets.QWidget):
         self._top_left: Point2D = Point2D(0.0, 0.0)
         self._last_layout_revision: int = -1
         self._submenu_dwell_progress: float = 0.0
+        self._back_dwell_progress: float = 0.0
 
     def set_submenu_dwell_progress(self, progress: float) -> None:
         clamped = max(0.0, min(1.0, progress))
         if abs(clamped - self._submenu_dwell_progress) >= 0.04:
             self._submenu_dwell_progress = clamped
+            if self.isVisible():
+                self.update()
+
+    def set_back_dwell_progress(self, progress: float) -> None:
+        clamped = max(0.0, min(1.0, progress))
+        if abs(clamped - self._back_dwell_progress) >= 0.04:
+            self._back_dwell_progress = clamped
             if self.isVisible():
                 self.update()
 
@@ -62,6 +70,7 @@ class RadialMenuOverlay(QtWidgets.QWidget):
         if state is None:
             self._last_layout_revision = -1
             self._submenu_dwell_progress = 0.0
+            self._back_dwell_progress = 0.0
             if self.isVisible():
                 self.hide()
             return
@@ -70,6 +79,7 @@ class RadialMenuOverlay(QtWidgets.QWidget):
         if state.layout_revision != self._last_layout_revision or not self.isVisible():
             self._last_layout_revision = state.layout_revision
             self._submenu_dwell_progress = 0.0
+            self._back_dwell_progress = 0.0
             self._relayout_window(state, settings)
 
         self.update()
@@ -234,6 +244,35 @@ class RadialMenuOverlay(QtWidgets.QWidget):
             sub_text,
         )
 
+        # 3b. Maya-style mouse-only "‹ 返回上级" hover pill when inside a submenu
+        if state.back_rect is not None:
+            b_rect = self._rect_to_local(state.back_rect)
+            is_back_hover = state.hit.kind == "back"
+            painter.setBrush(
+                _hex_color(palette["panel_hover"] if is_back_hover else palette["hub_bg"], bg_alpha)
+            )
+            painter.setPen(
+                QtGui.QPen(
+                    _hex_color(palette["border_hover"] if is_back_hover else palette["accent"], 235),
+                    1.1,
+                )
+            )
+            painter.drawRoundedRect(b_rect, 3.0 * scale, 3.0 * scale)
+
+            if is_back_hover and self._back_dwell_progress > 0.01:
+                fill_w = (b_rect.width() - 2.0) * self._back_dwell_progress
+                painter.setPen(QtCore.Qt.PenStyle.NoPen)
+                painter.setBrush(_hex_color(palette["border_hover"], 230))
+                painter.drawRect(
+                    QtCore.QRectF(b_rect.x() + 1.0, b_rect.bottom() - 2.5 * scale, fill_w, 2.0 * scale)
+                )
+
+            back_font = QtGui.QFont("Microsoft YaHei UI", max(7, int(8 * scale)))
+            back_font.setWeight(QtGui.QFont.Weight.DemiBold)
+            painter.setFont(back_font)
+            painter.setPen(_hex_color("#FFFFFF" if is_back_hover else palette["text"], 245))
+            painter.drawText(b_rect, QtCore.Qt.AlignmentFlag.AlignCenter, "‹ 返回上级")
+
         # 4. Extra vertical stack below South
         extras = state.profile.enabled_extra_items()
         if extras and state.extra_geoms:
@@ -270,6 +309,8 @@ class RadialMenuOverlay(QtWidgets.QWidget):
 
     @staticmethod
     def _compute_status_hint(state: RadialSessionState) -> str:
+        if state.hit.kind == "back":
+            return "松开前停留即返回上级"
         sel = state.selected_item()
         if sel is not None:
             if state.hit.is_option_box and sel.has_option_box():
@@ -279,7 +320,7 @@ class RadialMenuOverlay(QtWidgets.QWidget):
             if sel.tooltip:
                 return sel.tooltip
         if state.profile_stack:
-            return "Backspace 返回上级"
+            return "悬停下方 / 左键返回"
         return state.profile.subtitle or state.trigger
 
     def _draw_item_button(

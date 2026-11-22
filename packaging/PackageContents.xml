@@ -3,7 +3,7 @@
                     AutodeskProduct="3ds Max"
                     ProductType="Application"
                     Name="MaxHotbox"
-                    AppVersion="0.1.0"
+                    AppVersion="0.1.1"
                     Description="Maya-style multi-level radial marking menu and 5-zone hotbox plugin for Autodesk 3ds Max 2026."
                     Author="MaxHotbox Team"
                     ProductCode="{9D4C8A12-2026-4B7E-9A51-5E8C3A4F1000}"
@@ -23,7 +23,7 @@
                          SeriesMin="2026"
                          SeriesMax="2026" />
     <ComponentEntry AppName="MaxHotboxMacros"
-                    Version="0.1.0"
+                    Version="0.1.1"
                     ModuleName="./Contents/macroscripts/MaxHotbox.mcr"
                     AppDescription="MaxHotbox toolbar, hotkey, and menu MacroScripts" />
   </Components>
@@ -34,7 +34,7 @@
                          SeriesMin="2026"
                          SeriesMax="2026" />
     <ComponentEntry AppName="MaxHotboxBootstrap"
-                    Version="0.1.0"
+                    Version="0.1.1"
                     ModuleName="./Contents/scripts/post_startup.ms"
                     AppDescription="Initializes MaxHotbox Python runtime, viewport hooks, and Max 2026 menu items" />
   </Components>

@@ -296,10 +296,11 @@ class HotboxSettingsDialog(QtWidgets.QDialog):
         self._trigger_checks: dict[str, QtWidgets.QCheckBox] = {}
         labels = {
             "RMB": "右键 (RMB) — 上下文对象/子层级/创建菜单",
-            "SHIFT+RMB": "Shift + 右键 — 多边形建模（含 □ 数值面板）",
-            "CTRL+RMB": "Ctrl + 右键 — 选择转换/循环/环形菜单",
+            "SHIFT+RMB": "Shift + 右键 — 多边形建模（含石墨工具与 □ 面板）",
+            "CTRL+RMB": "Ctrl + 右键 — 选择转换/石墨选择/随机选择",
             "ALT+RMB": "Alt + 右键 — 视口切换与着色显示菜单",
             "CTRL+SHIFT+RMB": "Ctrl + Shift + 右键 — 坐标系/枢轴/捕捉菜单",
+            "SPACE+RMB": "Space + 右键 — Maya 风格视图与快捷热盒",
         }
         for idx, trigger in enumerate(ALL_RMB_TRIGGERS):
             chk = QtWidgets.QCheckBox(labels.get(trigger, trigger))

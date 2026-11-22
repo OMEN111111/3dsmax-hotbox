@@ -41,7 +41,7 @@ class ItemButtonGeometry:
 class RadialHitResult:
     """Result of hit-testing a cursor position relative to the menu origin."""
 
-    kind: str  # "center" | "direction" | "extra"
+    kind: str  # "center" | "direction" | "extra" | "back"
     direction: str | None = None
     extra_index: int | None = None
     is_option_box: bool = False
@@ -203,6 +203,21 @@ def compute_extra_item_rects(
     return [g.full_rect for g in geoms]
 
 
+def compute_back_button_rect(
+    origin: Point2D,
+    scale: float = 1.0,
+) -> Rect2D:
+    """Compute the non-overlapping mouse-hover '‹ 返回上级' button rect inside the inner ring."""
+    w = 96.0 * scale
+    h = 22.0 * scale
+    return Rect2D(
+        x=origin.x - w * 0.5,
+        y=origin.y + 24.0 * scale,
+        width=w,
+        height=h,
+    )
+
+
 def hit_test_radial(
     origin: Point2D,
     cursor: Point2D,
@@ -212,10 +227,12 @@ def hit_test_radial(
     slot_geoms: dict[str, ItemButtonGeometry] | None = None,
     extra_geoms: list[ItemButtonGeometry] | None = None,
     extra_rects: list[Rect2D] | None = None,
+    back_rect: Rect2D | None = None,
 ) -> RadialHitResult:
-    """Determine which radial slot, Option Box [□], or extra item the cursor targets.
+    """Determine which radial slot, Option Box [□], extra item, or '‹ 返回上级' button is hit.
 
     Priority:
+      0. Direct hit on '‹ 返回上级' button when inside a submenu.
       1. Direct hit on any radial slot's right-side Option Box [□] or main button rect.
       2. Direct hit on any extra vertical stack item (Option Box [□] or main rect).
       3. Center deadzone -> cancel.
@@ -225,6 +242,14 @@ def hit_test_radial(
     dy = cursor.y - origin.y
     dist = math.hypot(dx, dy)
     angle = compute_angle_clockwise_from_north(dx, dy) if dist > 0.0 else 0.0
+
+    # 0. Mouse-only return to parent submenu button (inside inner ring, below center hub)
+    if back_rect is not None and back_rect.contains(cursor.x, cursor.y, pad=2.0):
+        return RadialHitResult(
+            kind="back",
+            distance=dist,
+            angle_deg=angle,
+        )
 
     # 1. Exact hit-test on radial slot buttons (enables hovering Option Box [□] accurately)
     if slot_geoms:

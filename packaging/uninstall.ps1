@@ -1,12 +1,12 @@
 ﻿<#
 .SYNOPSIS
-    Uninstalls MaxHotbox.bundle for Autodesk 3ds Max 2026.
+    One-click uninstaller for MaxHotbox (Autodesk 3ds Max 2026).
 .PARAMETER AllUsers
-    Remove from %ProgramData%\Autodesk\ApplicationPlugins (requires Administrator).
+    Also attempt removal from %ProgramData%\Autodesk\ApplicationPlugins.
 .PARAMETER RemoveUserConfig
-    Also delete user custom menu configs and logs.
+    Delete user custom menu configs and logs without prompting.
 .PARAMETER NoPause
-    Do not wait for Enter before exiting.
+    Do not prompt or wait for Enter before exiting.
 #>
 param(
     [switch]$AllUsers,
@@ -18,20 +18,35 @@ $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 try {
-    if ($AllUsers) {
-        $TargetBundle = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MaxHotbox.bundle"
-    } else {
-        $TargetBundle = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\MaxHotbox.bundle"
+    $Targets = @(
+        (Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\MaxHotbox.bundle")
+    )
+    if ($AllUsers -or (Test-Path (Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MaxHotbox.bundle"))) {
+        $Targets += (Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MaxHotbox.bundle")
     }
 
-    if (Test-Path $TargetBundle) {
-        Remove-Item -Path $TargetBundle -Recurse -Force
-        Write-Host "[OK] 已删除插件包: $TargetBundle" -ForegroundColor Green
-    } else {
-        Write-Host "[INFO] 未检测到已安装的插件包: $TargetBundle" -ForegroundColor Yellow
+    $RemovedAny = $false
+    foreach ($bundle in ($Targets | Select-Object -Unique)) {
+        if (Test-Path $bundle) {
+            Remove-Item -Path $bundle -Recurse -Force
+            Write-Host "[OK] 已移除插件包: $bundle" -ForegroundColor Green
+            $RemovedAny = $true
+        }
     }
 
-    if ($RemoveUserConfig) {
+    if (-not $RemovedAny) {
+        Write-Host "[INFO] 未检测到已安装的 MaxHotbox.bundle。" -ForegroundColor Yellow
+    }
+
+    $DoCleanConfig = [bool]$RemoveUserConfig
+    if (-not $DoCleanConfig -and -not $NoPause) {
+        $ans = Read-Host "是否同时清理个人自定义热盒配置与日志? [y/N]"
+        if ($ans -match '^[Yy]') {
+            $DoCleanConfig = $true
+        }
+    }
+
+    if ($DoCleanConfig) {
         $ConfigDirs = @(
             (Join-Path $env:LOCALAPPDATA "Autodesk\3dsMax\2026 - 64bit\CHS\userconfig\MaxHotbox"),
             (Join-Path $env:LOCALAPPDATA "Autodesk\3dsMax\2026 - 64bit\ENU\userconfig\MaxHotbox"),
@@ -45,16 +60,19 @@ try {
         }
     }
 
-    Write-Host "卸载完成。如 3ds Max 2026 正在运行，请重启以完全恢复原生状态。" -ForegroundColor Cyan
+    $MaxRunning = [bool](Get-Process -Name "3dsmax" -ErrorAction SilentlyContinue)
+    Write-Host ""
+    Write-Host "==========================================================" -ForegroundColor Green
+    Write-Host " [OK] MaxHotbox 卸载完成！" -ForegroundColor Green
+    Write-Host "==========================================================" -ForegroundColor Green
+    if ($MaxRunning) {
+        Write-Host "[提示] 检测到 3ds Max 正在运行，请重启 3ds Max 2026 以完全恢复原生四元菜单。" -ForegroundColor Yellow
+    }
 }
 catch {
     Write-Host "[ERROR] 卸载失败: $($_.Exception.Message)" -ForegroundColor Red
-    if (-not $NoPause) {
-        Read-Host "按回车键退出"
-    }
+    if (-not $NoPause) { Read-Host "按回车键退出" }
     exit 1
 }
 
-if (-not $NoPause) {
-    Read-Host "按回车键退出"
-}
+if (-not $NoPause) { Read-Host "按回车键退出" }

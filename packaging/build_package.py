@@ -159,8 +159,8 @@ def build() -> dict[str, Path]:
     shutil.copytree(SRC_PYTHON, python_dir, ignore=_ignore_junk)
 
     # Copy convenient top-level launchers into dist/
-    shutil.copy2(PACKAGING_DIR / "install.bat", DIST_DIR / "install.bat")
-    shutil.copy2(PACKAGING_DIR / "uninstall.bat", DIST_DIR / "uninstall.bat")
+    shutil.copy2(PROJECT_ROOT / "install.bat", DIST_DIR / "install.bat")
+    shutil.copy2(PROJECT_ROOT / "uninstall.bat", DIST_DIR / "uninstall.bat")
     _copy_with_utf8_bom(PACKAGING_DIR / "Load_MaxHotbox_Now.ms", DIST_DIR / "Load_MaxHotbox_Now.ms")
 
     # 3. Validate bundle
@@ -170,8 +170,8 @@ def build() -> dict[str, Path]:
     # 4. Build standard ZIP release archive
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         _zip_directory(zf, bundle_dir, f"{plugin_name}.bundle")
-        zf.write(PACKAGING_DIR / "install.bat", "install.bat")
-        zf.write(PACKAGING_DIR / "uninstall.bat", "uninstall.bat")
+        zf.write(PROJECT_ROOT / "install.bat", "install.bat")
+        zf.write(PROJECT_ROOT / "uninstall.bat", "uninstall.bat")
         zf.write(PACKAGING_DIR / "install.ps1", "install.ps1")
         zf.write(PACKAGING_DIR / "uninstall.ps1", "uninstall.ps1")
         zf.write(DIST_DIR / "Load_MaxHotbox_Now.ms", "Load_MaxHotbox_Now.ms")

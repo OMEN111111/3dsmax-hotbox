@@ -12,6 +12,7 @@ from .constants import (
     TRIGGER_CTRL_SHIFT_RMB,
     TRIGGER_RMB,
     TRIGGER_SHIFT_RMB,
+    TRIGGER_SPACE_RMB,
 )
 from .logger import get_logger
 
@@ -33,6 +34,8 @@ class MaxContext:
 
 def resolve_profile_id(trigger: str, ctx: MaxContext) -> str:
     """Choose the best radial menu profile ID for a trigger + Max context."""
+    if trigger == TRIGGER_SPACE_RMB:
+        return "space_rmb_maya"
     if trigger == TRIGGER_ALT_RMB:
         return "alt_rmb_viewport"
     if trigger == TRIGGER_CTRL_RMB:

@@ -11,6 +11,8 @@ from .geometry import (
     ItemButtonGeometry,
     Point2D,
     RadialHitResult,
+    Rect2D,
+    compute_back_button_rect,
     compute_extra_item_geometries,
     compute_radial_slot_geometries,
     hit_test_hotbox_zone,
@@ -36,6 +38,7 @@ class RadialSessionState:
     hit: RadialHitResult = field(default_factory=lambda: RadialHitResult(kind="center"))
     slot_geoms: dict[str, ItemButtonGeometry] = field(default_factory=dict)
     extra_geoms: list[ItemButtonGeometry] = field(default_factory=list)
+    back_rect: Rect2D | None = None
     layout_revision: int = 1
     source_hwnd: int = 0
 
@@ -207,6 +210,7 @@ class HotboxStateMachine:
             available_directions=self._radial.profile.enabled_directions(),
             slot_geoms=self._radial.slot_geoms,
             extra_geoms=self._radial.extra_geoms,
+            back_rect=self._radial.back_rect,
         )
         self._radial.cursor = cursor
         self._radial.hit = hit
@@ -237,6 +241,7 @@ class HotboxStateMachine:
         self._radial.hit = RadialHitResult(kind="center")
         self._radial.slot_geoms = slot_geoms
         self._radial.extra_geoms = extra_geoms
+        self._radial.back_rect = compute_back_button_rect(origin, scale=cfg.settings.ui_scale)
         self._radial.layout_revision = self._next_revision()
         self._emit_radial()
         return True
@@ -253,6 +258,11 @@ class HotboxStateMachine:
         self._radial.hit = RadialHitResult(kind="center")
         self._radial.slot_geoms = slot_geoms
         self._radial.extra_geoms = extra_geoms
+        self._radial.back_rect = (
+            compute_back_button_rect(parent.origin, scale=cfg.settings.ui_scale)
+            if self._radial.profile_stack
+            else None
+        )
         self._radial.layout_revision = self._next_revision()
         self._emit_radial()
         return True

@@ -15,6 +15,7 @@ from .constants import (
     TRIGGER_CTRL_SHIFT_RMB,
     TRIGGER_RMB,
     TRIGGER_SHIFT_RMB,
+    TRIGGER_SPACE_RMB,
     VK_BACK,
     VK_CONTROL,
     VK_ESCAPE,
@@ -22,12 +23,14 @@ from .constants import (
     VK_MBUTTON,
     VK_MENU,
     VK_SHIFT,
+    VK_SPACE,
     WM_CANCELMODE,
     WM_CAPTURECHANGED,
     WM_CONTEXTMENU,
     WM_KEYDOWN,
     WM_KEYUP,
     WM_KILLFOCUS,
+    WM_LBUTTONDOWN,
     WM_NCDESTROY,
     WM_RBUTTONDOWN,
     WM_RBUTTONUP,
@@ -153,6 +156,7 @@ class ViewportSubclassManager:
         is_radial_active: Callable[[], bool],
         is_hotbox_active: Callable[[], bool],
         on_backspace: Callable[[], bool] | None = None,
+        on_lmb_while_radial: Callable[[], bool] | None = None,
         win32_apis: tuple[Any, Any] | None = None,
     ) -> None:
         self._user32, self._comctl32 = win32_apis if win32_apis is not None else _init_win32_apis()
@@ -162,6 +166,7 @@ class ViewportSubclassManager:
         self._on_hold_key_up = on_hold_key_up
         self._on_escape = on_escape
         self._on_backspace = on_backspace
+        self._on_lmb_while_radial = on_lmb_while_radial
         self._on_abort = on_abort
         self._hold_vk_getter = hold_vk_getter
         self._is_radial_active = is_radial_active
@@ -174,6 +179,7 @@ class ViewportSubclassManager:
         self._releasing_capture: bool = False
         self._suppress_context_menu_until: float = 0.0
         self._active_hold_vk: int = 0
+        self._space_used_with_rmb: bool = False
 
     @property
     def hooked_hwnds(self) -> tuple[int, ...]:
@@ -183,10 +189,13 @@ class ViewportSubclassManager:
         return bool(self._user32.GetKeyState(vk) & 0x8000)
 
     def current_rmb_trigger(self) -> str:
+        space = self.is_key_down(VK_SPACE)
         shift = self.is_key_down(VK_SHIFT)
         ctrl = self.is_key_down(VK_CONTROL)
         alt = self.is_key_down(VK_MENU)
 
+        if space and not ctrl and not alt:
+            return TRIGGER_SPACE_RMB
         if ctrl and shift and not alt:
             return TRIGGER_CTRL_SHIFT_RMB
         if alt and not ctrl and not shift:
@@ -308,20 +317,37 @@ class ViewportSubclassManager:
                     self._comctl32.RemoveWindowSubclass(hwnd, cb, subclass_id)
                 return self._comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
-            # Right mouse button down -> Radial Marking Menu
-            if msg == WM_RBUTTONDOWN and not self._is_radial_active() and not self._is_hotbox_active():
+            # Right mouse button down -> Radial Marking Menu (including Maya Space+RMB)
+            if msg == WM_RBUTTONDOWN and not self._is_radial_active():
                 if not self.is_key_down(VK_LBUTTON) and not self.is_key_down(VK_MBUTTON):
                     trigger = self.current_rmb_trigger()
-                    if trigger != "UNHANDLED" and self._on_rmb_down(hwnd, trigger):
-                        self.set_capture(hwnd)
-                        self._suppress_context_menu_until = time.monotonic() + 0.5
-                        return 0
+                    # Allow Space+RMB even if Space already opened the 5-zone Full Hotbox
+                    if not self._is_hotbox_active() or trigger == TRIGGER_SPACE_RMB:
+                        if trigger != "UNHANDLED" and self._on_rmb_down(hwnd, trigger):
+                            if trigger == TRIGGER_SPACE_RMB:
+                                self._space_used_with_rmb = True
+                                self._active_hold_vk = 0
+                            self.set_capture(hwnd)
+                            self._suppress_context_menu_until = time.monotonic() + 0.5
+                            return 0
+
+            # Left-click tap while holding RMB inside a submenu -> Maya-style instant return to parent
+            if msg == WM_LBUTTONDOWN and self._is_radial_active():
+                if self._on_lmb_while_radial and self._on_lmb_while_radial():
+                    return 0
 
             # Right mouse button up -> Complete Radial Marking Menu and execute!
             if msg == WM_RBUTTONUP and self._is_radial_active():
                 self._suppress_context_menu_until = time.monotonic() + 0.15
                 self.release_capture()
                 self._on_rmb_up(hwnd)
+                return 0
+
+            # Suppress Space auto-repeat & Space release after Space+RMB so Max Selection Lock never toggles
+            if msg == WM_KEYDOWN and wparam == VK_SPACE and self._space_used_with_rmb:
+                return 0
+            if msg == WM_KEYUP and wparam == VK_SPACE and self._space_used_with_rmb:
+                self._space_used_with_rmb = False
                 return 0
 
             # Suppress native context menu / Quad menu while radial is active or just released

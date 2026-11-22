@@ -23,16 +23,55 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "collapse_stack": "塌陷修改器堆栈 (Collapse Stack)",
     "clone_object": "原位克隆对象 (Clone Selection)",
     # Modifiers
-    "mod_edit_poly": "添加 Edit Poly 修改器",
-    "mod_turbosmooth": "添加 TurboSmooth 修改器",
+    "mod_edit_poly": "添加 Edit Poly 编辑多边形修改器",
+    "mod_turbosmooth": "添加 TurboSmooth 涡轮平滑修改器",
+    "mod_opensubdiv": "添加 OpenSubdiv 细分修改器",
     "mod_symmetry": "添加 Symmetry 对称修改器",
     "mod_shell": "添加 Shell 壳修改器",
-    "mod_unwrap_uvw": "添加 Unwrap UVW 修改器",
+    "mod_unwrap_uvw": "添加 Unwrap UVW 展UV修改器",
+    "mod_uvw_map": "添加 UVW Map 贴图坐标修改器",
     "mod_extrude": "添加 Extrude 挤出修改器",
     "mod_chamfer": "添加 Chamfer 切角修改器",
+    "mod_weighted_normals": "添加 Weighted Normals 加权法线修改器",
+    "mod_edit_normals": "添加 Edit Normals 编辑法线修改器",
+    "mod_ffd2": "添加 FFD 2x2x2 自由变形修改器",
     "mod_ffd3": "添加 FFD 3x3x3 自由变形修改器",
+    "mod_ffd4": "添加 FFD 4x4x4 自由变形修改器",
     "mod_bend": "添加 Bend 弯曲修改器",
+    "mod_twist": "添加 Twist 扭曲修改器",
+    "mod_taper": "添加 Taper 锥化修改器",
+    "mod_noise": "添加 Noise 噪波修改器",
+    "mod_spherify": "添加 Spherify 球形化修改器",
+    "mod_push": "添加 Push 推力修改器",
+    "mod_smooth": "添加 Smooth 平滑修改器",
+    "mod_lathe": "添加 Lathe 车削修改器",
+    "mod_sweep": "添加 Sweep 扫描修改器",
+    "mod_prooptimizer": "添加 ProOptimizer 减面优化修改器",
     "mod_mirror": "添加 Mirror 镜像修改器",
+    # Graphite Modeling & Selection Tools (石墨工具 + 自建参数面板)
+    "graphite_swift_loop": "石墨: 快速循环加线 (Swift Loop)",
+    "graphite_flow_connect": "石墨: 流连接 (Flow Connect)",
+    "graphite_set_flow": "石墨: 设置流 (Set Flow)",
+    "graphite_space_loop": "石墨: 间距均分 (Space Loop)",
+    "graphite_geopoly": "石墨: 几何体变圆 (GeoPoly)",
+    "graphite_quadrify": "石墨: 全部四角化 (Quadrify All)",
+    "graphite_remove_iso_verts": "石墨: 清理孤立顶点 (Delete Iso Verts)",
+    "graphite_constrain_none": "石墨约束: 无约束 (None)",
+    "graphite_constrain_edge": "石墨约束: 边约束 (Edge)",
+    "graphite_constrain_face": "石墨约束: 面约束 (Face)",
+    "graphite_constrain_normal": "石墨约束: 法线约束 (Normal)",
+    "graphite_random_select": "石墨: 随机选择 (快速执行)",
+    "graphite_random_select_settings": "石墨: 随机选择比例面板 (自建 □)",
+    "graphite_select_ngons": "石墨: 选择多边面 N-Gon (>4边)",
+    "graphite_select_by_sides_settings": "石墨: 按边数选择面面板 (自建 □)",
+    "graphite_dot_loop": "石墨: 点循环隔选 (Dot Loop)",
+    "graphite_dot_loop_settings": "石墨: 点循环步长面板 (自建 □)",
+    "graphite_dot_ring": "石墨: 点环形隔选 (Dot Ring)",
+    "graphite_dot_ring_settings": "石墨: 点环形步长面板 (自建 □)",
+    "graphite_select_hard_edges": "石墨: 按角度选硬边 (Hard Edges)",
+    "graphite_select_hard_edges_settings": "石墨: 硬边角度阈值面板 (自建 □)",
+    "graphite_select_by_angle": "石墨: 按角度选共面 (Select by Angle)",
+    "graphite_select_by_angle_settings": "石墨: 共面角度阈值面板 (自建 □)",
     # Poly modeling — Interactive viewport drag (main button)
     "poly_extrude": "挤出 - 视口鼠标拖动 (Interactive Extrude)",
     "poly_inset": "插入 - 视口鼠标拖动 (Interactive Inset)",
@@ -123,8 +162,11 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "view_front": "前视图 (Front)",
     "view_left": "左视图 (Left)",
     "view_right": "右视图 (Right)",
+    "view_back": "后视图 (Back)",
+    "view_bottom": "底视图 (Bottom)",
     "view_ortho": "正交视图 (Orthographic)",
     "view_camera": "相机视图 (Camera View)",
+    "toggle_safeframes": "切换安全框 (Safe Frames / Shift+F)",
     "zoom_extents_sel": "聚焦选中对象 (Zoom Extents Selected)",
     "zoom_extents_all": "最大化显示全部 (Zoom Extents All)",
     "toggle_wireframe": "切换线框/着色显示 (F3)",
@@ -232,17 +274,25 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         '(undo "MaxHotbox: Add TurboSmooth" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (TurboSmooth iterations:1) ui:on)))"
     ),
+    "mod_opensubdiv": (
+        '(undo "MaxHotbox: Add OpenSubdiv" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (OpenSubdiv iterations:1) ui:on)))"
+    ),
     "mod_symmetry": (
         '(undo "MaxHotbox: Add Symmetry" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Symmetry()) ui:on)))"
     ),
     "mod_shell": (
         '(undo "MaxHotbox: Add Shell" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Shell()) ui:on)))"
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Shell outerAmount:2.0) ui:on)))"
     ),
     "mod_unwrap_uvw": (
         '(undo "MaxHotbox: Add Unwrap UVW" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Unwrap_UVW()) ui:on)))"
+    ),
+    "mod_uvw_map": (
+        '(undo "MaxHotbox: Add UVW Map" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Uvwmap maptype:4) ui:on)))"
     ),
     "mod_extrude": (
         '(undo "MaxHotbox: Add Extrude" on ('
@@ -250,19 +300,106 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "mod_chamfer": (
         '(undo "MaxHotbox: Add Chamfer" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Chamfer()) ui:on)))"
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Chamfer amount:1.0 segments:2) ui:on)))"
+    ),
+    "mod_weighted_normals": (
+        '(undo "MaxHotbox: Add Weighted Normals" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Weighted_Normals()) ui:on) catch ())))"
+    ),
+    "mod_edit_normals": (
+        '(undo "MaxHotbox: Add Edit Normals" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Edit_Normals()) ui:on)))"
+    ),
+    "mod_ffd2": (
+        '(undo "MaxHotbox: Add FFD 2x2x2" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_2x2x2()) ui:on)))"
     ),
     "mod_ffd3": (
         '(undo "MaxHotbox: Add FFD 3x3x3" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_3x3x3()) ui:on)))"
     ),
+    "mod_ffd4": (
+        '(undo "MaxHotbox: Add FFD 4x4x4" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_4x4x4()) ui:on)))"
+    ),
     "mod_bend": (
         '(undo "MaxHotbox: Add Bend" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Bend()) ui:on)))"
     ),
+    "mod_twist": (
+        '(undo "MaxHotbox: Add Twist" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Twist()) ui:on)))"
+    ),
+    "mod_taper": (
+        '(undo "MaxHotbox: Add Taper" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Taper()) ui:on)))"
+    ),
+    "mod_noise": (
+        '(undo "MaxHotbox: Add Noise" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Noisemodifier scale:20.0 strength:[5,5,5]) ui:on)))"
+    ),
+    "mod_spherify": (
+        '(undo "MaxHotbox: Add Spherify" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Spherify()) ui:on)))"
+    ),
+    "mod_push": (
+        '(undo "MaxHotbox: Add Push" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Push()) ui:on)))"
+    ),
+    "mod_smooth": (
+        '(undo "MaxHotbox: Add Smooth" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Smooth autosmooth:true) ui:on)))"
+    ),
+    "mod_lathe": (
+        '(undo "MaxHotbox: Add Lathe" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Lathe weldCore:true) ui:on)))"
+    ),
+    "mod_sweep": (
+        '(undo "MaxHotbox: Add Sweep" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Sweep()) ui:on)))"
+    ),
+    "mod_prooptimizer": (
+        '(undo "MaxHotbox: Add ProOptimizer" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (ProOptimizer()) ui:on)))"
+    ),
     "mod_mirror": (
         '(undo "MaxHotbox: Add Mirror" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Mirror()) ui:on)))"
+    ),
+    # ---------------------------------------------- Graphite Modeling Tools
+    "graphite_swift_loop": (
+        "(try (macros.run \"PolyTools\" \"SwiftLoop\") catch (try (PolyToolsModeling.SwiftLoop()) catch ()))"
+    ),
+    "graphite_flow_connect": (
+        '(undo "MaxHotbox: Flow Connect" on (try (macros.run "PolyTools" "FlowConnect") catch (try (PolyToolsModeling.FlowConnect()) catch ())))'
+    ),
+    "graphite_set_flow": (
+        '(undo "MaxHotbox: Set Flow" on (try (PolyToolsModeling.SetFlow false) catch (try (macros.run "PolyTools" "SetFlow") catch ())))'
+    ),
+    "graphite_space_loop": (
+        '(undo "MaxHotbox: Space Loop" on (try (macros.run "PolyTools" "SpaceLoop") catch ()))'
+    ),
+    "graphite_geopoly": (
+        '(undo "MaxHotbox: GeoPoly" on (try (macros.run "PolyTools" "GeoPoly") catch (try (PolyToolsModeling.GeoPoly()) catch ())))'
+    ),
+    "graphite_quadrify": (
+        '(undo "MaxHotbox: Quadrify All" on (try (PolyToolsModeling.Quadrify false false) catch (try (macros.run "PolyTools" "QuadrifyAll") catch ())))'
+    ),
+    "graphite_remove_iso_verts": (
+        '(undo "MaxHotbox: Delete Iso Verts" on ('
+        "if selection.count > 0 and classOf selection[1] == Editable_Poly do polyop.deleteIsoVerts selection[1]))"
+    ),
+    "graphite_constrain_none": (
+        "(local cur = modPanel.getCurrentObject(); if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.constrainType = 0)"
+    ),
+    "graphite_constrain_edge": (
+        "(local cur = modPanel.getCurrentObject(); if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.constrainType = 1)"
+    ),
+    "graphite_constrain_face": (
+        "(local cur = modPanel.getCurrentObject(); if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.constrainType = 2)"
+    ),
+    "graphite_constrain_normal": (
+        "(local cur = modPanel.getCurrentObject(); if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.constrainType = 3)"
     ),
     # ---------------------- Poly Interactive Viewport Drag (Main Button Body)
     "poly_extrude": (
@@ -580,8 +717,11 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "view_front": "(viewport.setType #view_front)",
     "view_left": "(viewport.setType #view_left)",
     "view_right": "(viewport.setType #view_right)",
+    "view_back": "(viewport.setType #view_back)",
+    "view_bottom": "(viewport.setType #view_bottom)",
     "view_ortho": "(viewport.setType #view_iso_user)",
     "view_camera": "(max vpt camera)",
+    "toggle_safeframes": "(displaySafeFrames = not displaySafeFrames)",
     "zoom_extents_sel": "(max zoomext sel)",
     "zoom_extents_all": "(max zoomext sel all)",
     "toggle_wireframe": "(max wire smooth)",
