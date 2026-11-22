@@ -1,0 +1,22 @@
+# Local experiments, logs, tests, and build artifacts (not published to Git)
+.text/
+tests/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs & temporary files
+*.log
+*.tmp

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+                    AutodeskProduct="3ds Max"
+                    ProductType="Application"
+                    Name="MaxHotbox"
+                    AppVersion="0.1.0"
+                    Description="Maya-style multi-level radial marking menu and 5-zone hotbox plugin for Autodesk 3ds Max 2026."
+                    Author="MaxHotbox Team"
+                    ProductCode="{9D4C8A12-2026-4B7E-9A51-5E8C3A4F1000}"
+                    UpgradeCode="{7A2E6F31-91B4-4D8C-8E20-1C9B4D7E2026}">
+
+  <CompanyDetails Name="MaxHotbox Project"
+                  Description="Maya-style Hotbox and Marking Menu workflow for 3ds Max 2026." />
+
+  <RuntimeRequirements OS="Win64"
+                       Platform="3ds Max"
+                       SeriesMin="2026"
+                       SeriesMax="2026" />
+
+  <Components Description="macroscripts parts">
+    <RuntimeRequirements OS="Win64"
+                         Platform="3ds Max"
+                         SeriesMin="2026"
+                         SeriesMax="2026" />
+    <ComponentEntry AppName="MaxHotboxMacros"
+                    Version="0.1.0"
+                    ModuleName="./Contents/macroscripts/MaxHotbox.mcr"
+                    AppDescription="MaxHotbox toolbar, hotkey, and menu MacroScripts" />
+  </Components>
+
+  <Components Description="post-start-up scripts parts">
+    <RuntimeRequirements OS="Win64"
+                         Platform="3ds Max"
+                         SeriesMin="2026"
+                         SeriesMax="2026" />
+    <ComponentEntry AppName="MaxHotboxBootstrap"
+                    Version="0.1.0"
+                    ModuleName="./Contents/scripts/post_startup.ms"
+                    AppDescription="Initializes MaxHotbox Python runtime, viewport hooks, and Max 2026 menu items" />
+  </Components>
+
+</ApplicationPackage>
