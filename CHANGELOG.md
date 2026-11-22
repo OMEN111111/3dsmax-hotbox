@@ -2,6 +2,21 @@
 
 All notable changes to **MaxHotbox** will be documented in this file.
 
+## [0.1.2] - 2026-11-22 (Beta Update)
+
+### Fixed
+- **Installer (`install.bat`)**: Fixed `[ERROR] install.ps1 not found.` when running `dist/install.bat` by copying `install.ps1` & `uninstall.ps1` into `dist/` and adding `..\packaging\` fallback lookup in `install.bat` / `uninstall.bat`.
+- **Submenu Return Ping-Pong**: Added smart re-entry lock (`blocked_reenter_key`) when returning to a parent menu so the submenu you just exited will NOT immediately re-expand while your cursor is still resting over it; moving off to any other slot or center clears the lock immediately for seamless continuous flow.
+- **Native Graphite `Dot Loop` / `Dot Ring` Parity**: Switched `Dot Loop` / `Dot Ring` and their custom live-preview parameter panel (`□`) to drive 3ds Max's official `PolyToolsSelect.DotLoop(gap, cylinderEnds, opposite)` and `PolyToolsSelect.DotRing(gap)` directly — matching native Graphite behavior 100% across Vertex / Edge / Polygon and both `Editable_Poly` & `Edit_Poly`.
+
+### Added
+- **Spline Modifiers (`样条线修改器` submenu)**: Added `Normalize Spline (规格化样条线)`, `Edit Spline`, `Extrude`, `Bevel`, `Bevel Profile`, `Sweep`, `Lathe`, `Surface`, `CrossSection`, `Fillet/Chamfer`, `Spline Relax`, `Renderable Spline`, `Garment Maker`, and `Spline Select`.
+- **Complete 3-Level Spline Sub-Object Menus (`Shift + RMB` on Splines)**:
+  - **Vertex Level (样条顶点)**: `Fillet (圆角)`, `Chamfer (切角)`, `Weld (焊接)`, `顶点类型 ▸` (`Corner` / `Smooth` / `Bezier` / `Bezier Corner`), `Break`, `Fuse`, `Refine`, `Insert`, `Make First`, `Connect`, `Cross Insert`, `Detach`, `Cycle`.
+  - **Segment Level (样条线段)**: `Refine`, `Insert`, `Divide (拆分)` + custom `□` division count panel, `Detach (分离)`, `转为直线 (Line)`, `转为曲线 (Curve)`, `Attach`.
+  - **Spline Level (样条子层级)**: `Outline (轮廓)`, `Trim (修剪)`, `Extend (延伸)`, `Detach`, `Boolean Union / Subtract / Intersect`, `Reverse`, `Close`, `Explode`, `Mirror`.
+- **Graphite Step Loop (`步骤循环`)**: Added `PolyToolsSelect.StepLoop` to `石墨选择工具`.
+
 ## [0.1.1] - 2026-11-22 (Beta Update)
 
 ### Added

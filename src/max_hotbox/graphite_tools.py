@@ -187,10 +187,12 @@ class GraphiteToolMemory:
     random_from_current: bool = False
     sides_operator: str = ">"
     sides_target: int = 4
-    dot_step: int = 2
-    dot_offset: int = 0
+    dot_gap: int = 1
+    dot_cylinder_ends: bool = False
+    dot_opposite: bool = False
     hard_edge_angle: float = 30.0
     coplanar_angle: float = 25.0
+    spline_divide_count: int = 2
 
 
 _MEMORY = GraphiteToolMemory()
@@ -369,28 +371,100 @@ def _compute_dot_edge_chains(rt: Any, node: Any, cur: Any, mode: str) -> tuple[l
     return orig, chains
 
 
-def run_dot_step(mode: str = "loop", step: int | None = None, offset: int | None = None) -> int:
+def _resolve_poly_any(rt: Any) -> tuple[Any, Any, int, bool] | None:
+    """Return (node, current_obj, subobject_level, is_edit_poly_mod) for Editable_Poly OR Edit_Poly."""
+    try:
+        if int(rt.selection.count) == 0:
+            rt.pushPrompt("MaxHotbox 石墨工具: 请先选择一个多边形对象")
+            return None
+        node = rt.selection[0]
+        cur = rt.modPanel.getCurrentObject()
+        cls_name = str(rt.classOf(cur)).lower() if cur is not None else ""
+        if cls_name == "editable_poly":
+            sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
+            return node, cur, sub, False
+        if cls_name == "edit_poly":
+            sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
+            return node, cur, sub, True
+        node_cls = str(rt.classOf(node.baseObject)).lower()
+        if node_cls == "editable_poly":
+            sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
+            return node, node.baseObject, sub, False
+        rt.pushPrompt("MaxHotbox 石墨工具: 当前对象不是 Editable Poly / Edit Poly")
+        return None
+    except Exception as exc:
+        get_logger().warning("resolve_poly_any failed: %s", exc)
+        return None
+
+
+def _get_any_poly_selection(rt: Any, node: Any, cur: Any, level: int, is_mod: bool) -> list[int]:
+    if not is_mod:
+        return _get_poly_selection(rt, node, level)
+    sym = rt.Name(_subobj_sym(level))
+    try:
+        return _from_bitarray(cur.GetSelection(sym))
+    except Exception:
+        return []
+
+
+def _set_any_poly_selection(rt: Any, node: Any, cur: Any, level: int, indices: list[int], is_mod: bool) -> None:
+    if not is_mod:
+        _set_poly_selection(rt, node, level, indices)
+        return
+    sym = rt.Name(_subobj_sym(level))
+    try:
+        cur.SetSelection(sym, _to_bitarray(rt, indices))
+        rt.redrawViews()
+    except Exception:
+        pass
+
+
+def run_dot_step(
+    mode: str = "loop",
+    gap: int | None = None,
+    cylinder_ends: bool | None = None,
+    opposite: bool | None = None,
+) -> int:
+    """Run authentic native 3ds Max Graphite PolyToolsSelect.DotLoop / DotRing."""
     rt = _get_rt()
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return 0
-    node, cur, _sub = ctx
-    rt.setCommandPanelTaskMode(rt.Name("modify"))
-    rt.subObjectLevel = 2
+    node, cur, sub, is_mod = ctx
+    if sub not in (1, 2, 4):
+        rt.setCommandPanelTaskMode(rt.Name("modify"))
+        rt.subObjectLevel = 2
+        sub = 2
 
-    use_step = _MEMORY.dot_step if step is None else int(step)
-    use_off = _MEMORY.dot_offset if offset is None else int(offset)
-    _MEMORY.dot_step = use_step
-    _MEMORY.dot_offset = use_off
+    use_gap = _MEMORY.dot_gap if gap is None else max(1, int(gap))
+    use_cyl = _MEMORY.dot_cylinder_ends if cylinder_ends is None else bool(cylinder_ends)
+    use_opp = _MEMORY.dot_opposite if opposite is None else bool(opposite)
+    _MEMORY.dot_gap = use_gap
+    _MEMORY.dot_cylinder_ends = use_cyl
+    _MEMORY.dot_opposite = use_opp
 
-    _orig, chains = _compute_dot_edge_chains(rt, node, cur, mode)
-    if not chains:
+    seed_sel = _get_any_poly_selection(rt, node, cur, sub, is_mod)
+    if not seed_sel:
+        rt.pushPrompt("MaxHotbox 点循环/点环形: 请先选中至少一个起始子对象（顶点/边/面）")
         return 0
-    chosen = compute_dot_step_indices(chains, step=use_step, offset=use_off)
-    _set_poly_selection(rt, node, 2, chosen)
+
+    try:
+        if mode == "ring":
+            rt.PolyToolsSelect.DotRing(use_gap)
+        else:
+            rt.PolyToolsSelect.DotLoop(use_gap, use_cyl, use_opp)
+        rt.redrawViews()
+    except Exception as exc:
+        get_logger().warning("PolyToolsSelect dot_%s fallback: %s", mode, exc)
+        if not is_mod and sub == 2:
+            _orig, chains = _compute_dot_edge_chains(rt, node, cur, mode)
+            chosen = compute_dot_step_indices(chains, step=use_gap + 1, offset=0)
+            _set_poly_selection(rt, node, 2, chosen)
+
+    final_sel = _get_any_poly_selection(rt, node, cur, sub, is_mod)
     label = "点环形 Dot Ring" if mode == "ring" else "点循环 Dot Loop"
-    rt.pushPrompt(f"MaxHotbox {label} (步长 {use_step}): 已选中 {len(chosen)} 条边")
-    return len(chosen)
+    rt.pushPrompt(f"MaxHotbox {label} (间隔 {use_gap}): 已选中 {len(final_sel)} 项")
+    return len(final_sel)
 
 
 def _collect_face_normals(rt: Any, node: Any) -> dict[int, tuple[float, float, float]]:
@@ -720,35 +794,28 @@ def open_select_by_sides_panel() -> None:
 
 
 def open_dot_step_panel(initial_mode: str = "loop") -> None:
-    """Open custom PySide6 Dot Loop / Dot Ring step & offset live-preview panel."""
+    """Open custom PySide6 panel driving native Graphite PolyToolsSelect.DotLoop / DotRing."""
     from PySide6 import QtCore, QtWidgets
 
     rt = _get_rt()
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return
-    node, cur, _sub = ctx
-    rt.setCommandPanelTaskMode(rt.Name("modify"))
-    rt.subObjectLevel = 2
+    node, cur, sub, is_mod = ctx
+    if sub not in (1, 2, 4):
+        rt.setCommandPanelTaskMode(rt.Name("modify"))
+        rt.subObjectLevel = 2
+        sub = 2
 
-    orig_sel = _get_poly_selection(rt, node, 2)
+    orig_sel = _get_any_poly_selection(rt, node, cur, sub, is_mod)
     if not orig_sel:
-        rt.pushPrompt("MaxHotbox 点循环/点环形: 请先选中至少一条边")
+        rt.pushPrompt("MaxHotbox 点循环/点环形: 请先选中至少一个起始子对象（顶点/边/面）")
         return
 
-    cached_chains: dict[str, list[list[int]]] = {}
-
-    def get_chains(mode: str) -> list[list[int]]:
-        if mode not in cached_chains:
-            _set_poly_selection(rt, node, 2, orig_sel)
-            _, chains = _compute_dot_edge_chains(rt, node, cur, mode)
-            cached_chains[mode] = chains
-        return cached_chains[mode]
-
     dlg = QtWidgets.QDialog(_get_max_parent())
-    dlg.setWindowTitle("点循环 / 点环形间距 (Dot Loop & Ring)")
+    dlg.setWindowTitle(f"点循环 / 点环形 (原生石墨 · {_subobj_sym(sub)})")
     dlg.setStyleSheet(_PANEL_QSS)
-    dlg.setFixedWidth(340)
+    dlg.setFixedWidth(350)
 
     lay = QtWidgets.QVBoxLayout(dlg)
     lay.setSpacing(10)
@@ -762,26 +829,24 @@ def open_dot_step_panel(initial_mode: str = "loop") -> None:
     row_mode.addWidget(cmb_mode, 1)
     lay.addLayout(row_mode)
 
-    row_step = QtWidgets.QHBoxLayout()
-    row_step.addWidget(QtWidgets.QLabel("间隔步长:"))
-    s_step = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
-    s_step.setRange(2, 20)
-    s_step.setValue(max(2, _MEMORY.dot_step))
-    sp_step = QtWidgets.QSpinBox()
-    sp_step.setRange(2, 20)
-    sp_step.setValue(max(2, _MEMORY.dot_step))
-    row_step.addWidget(s_step, 1)
-    row_step.addWidget(sp_step)
-    lay.addLayout(row_step)
+    row_gap = QtWidgets.QHBoxLayout()
+    row_gap.addWidget(QtWidgets.QLabel("间隔跳过 (Gap):"))
+    s_gap = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+    s_gap.setRange(1, 20)
+    s_gap.setValue(max(1, _MEMORY.dot_gap))
+    sp_gap = QtWidgets.QSpinBox()
+    sp_gap.setRange(1, 20)
+    sp_gap.setValue(max(1, _MEMORY.dot_gap))
+    row_gap.addWidget(s_gap, 1)
+    row_gap.addWidget(sp_gap)
+    lay.addLayout(row_gap)
 
-    row_off = QtWidgets.QHBoxLayout()
-    row_off.addWidget(QtWidgets.QLabel("起始偏移:"))
-    sp_off = QtWidgets.QSpinBox()
-    sp_off.setRange(0, 19)
-    sp_off.setValue(_MEMORY.dot_offset)
-    row_off.addWidget(sp_off)
-    row_off.addStretch()
-    lay.addLayout(row_off)
+    chk_cyl = QtWidgets.QCheckBox("圆柱端面处理 (Cylinder Ends · 仅 Dot Loop)")
+    chk_cyl.setChecked(_MEMORY.dot_cylinder_ends)
+    chk_opp = QtWidgets.QCheckBox("反向偏移 (Opposite · 仅 Dot Loop)")
+    chk_opp.setChecked(_MEMORY.dot_opposite)
+    lay.addWidget(chk_cyl)
+    lay.addWidget(chk_opp)
 
     status_lbl = QtWidgets.QLabel("")
     status_lbl.setStyleSheet("color: #8FC0F0;")
@@ -791,19 +856,37 @@ def open_dot_step_panel(initial_mode: str = "loop") -> None:
 
     def apply_preview() -> None:
         mode = str(cmb_mode.currentData() or "loop")
-        step = sp_step.value()
-        off = sp_off.value()
-        _MEMORY.dot_step = step
-        _MEMORY.dot_offset = off
-        chains = get_chains(mode)
-        chosen = compute_dot_step_indices(chains, step=step, offset=off)
-        _set_poly_selection(rt, node, 2, chosen)
-        status_lbl.setText(f"实时预览: 选中 {len(chosen)} 条边 (每 {step} 条选 1 条)")
+        gap = sp_gap.value()
+        cyl = chk_cyl.isChecked()
+        opp = chk_opp.isChecked()
+        _MEMORY.dot_gap = gap
+        _MEMORY.dot_cylinder_ends = cyl
+        _MEMORY.dot_opposite = opp
 
-    s_step.valueChanged.connect(sp_step.setValue)
-    sp_step.valueChanged.connect(s_step.setValue)
-    sp_step.valueChanged.connect(lambda _v: apply_preview())
-    sp_off.valueChanged.connect(lambda _v: apply_preview())
+        is_loop = mode == "loop"
+        chk_cyl.setEnabled(is_loop)
+        chk_opp.setEnabled(is_loop)
+
+        # Always reset back to initial seed selection before running native PolyToolsSelect
+        _set_any_poly_selection(rt, node, cur, sub, orig_sel, is_mod)
+        try:
+            if mode == "ring":
+                rt.PolyToolsSelect.DotRing(gap)
+            else:
+                rt.PolyToolsSelect.DotLoop(gap, cyl, opp)
+            rt.redrawViews()
+        except Exception as exc:
+            status_lbl.setText(f"提示: {exc}")
+            return
+
+        now_sel = _get_any_poly_selection(rt, node, cur, sub, is_mod)
+        status_lbl.setText(f"实时预览: 已选中 {len(now_sel)} 项 (间隔跳过 {gap})")
+
+    s_gap.valueChanged.connect(sp_gap.setValue)
+    sp_gap.valueChanged.connect(s_gap.setValue)
+    sp_gap.valueChanged.connect(lambda _v: apply_preview())
+    chk_cyl.toggled.connect(lambda _c: apply_preview())
+    chk_opp.toggled.connect(lambda _c: apply_preview())
     cmb_mode.currentIndexChanged.connect(lambda _i: apply_preview())
 
     btns = QtWidgets.QHBoxLayout()
@@ -817,9 +900,84 @@ def open_dot_step_panel(initial_mode: str = "loop") -> None:
 
     ok_btn.clicked.connect(lambda: (accepted.__setitem__("ok", True), dlg.accept()))
     cancel_btn.clicked.connect(dlg.reject)
-    dlg.finished.connect(lambda _r: _set_poly_selection(rt, node, 2, orig_sel) if not accepted["ok"] else None)
+    dlg.finished.connect(
+        lambda _r: _set_any_poly_selection(rt, node, cur, sub, orig_sel, is_mod)
+        if not accepted["ok"]
+        else None
+    )
 
     apply_preview()
+    _show_single_panel(dlg)
+
+
+def open_spline_divide_panel() -> None:
+    """Open custom PySide6 panel to subdivide selected Spline segments by exact count."""
+    from PySide6 import QtCore, QtWidgets
+
+    rt = _get_rt()
+    try:
+        if int(rt.selection.count) == 0:
+            rt.pushPrompt("MaxHotbox 样条拆分: 请先选择一个样条线对象")
+            return
+        node = rt.selection[0]
+        if str(rt.superClassOf(node)).lower() != "shape":
+            rt.pushPrompt("MaxHotbox 样条拆分: 当前选中对象不是样条线")
+            return
+    except Exception:
+        return
+
+    dlg = QtWidgets.QDialog(_get_max_parent())
+    dlg.setWindowTitle("拆分样条线段 (Divide Segments)")
+    dlg.setStyleSheet(_PANEL_QSS)
+    dlg.setFixedWidth(310)
+
+    lay = QtWidgets.QVBoxLayout(dlg)
+    lay.setSpacing(10)
+
+    row = QtWidgets.QHBoxLayout()
+    row.addWidget(QtWidgets.QLabel("每段新增顶点数:"))
+    slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+    slider.setRange(1, 32)
+    slider.setValue(_MEMORY.spline_divide_count)
+    spin = QtWidgets.QSpinBox()
+    spin.setRange(1, 32)
+    spin.setValue(_MEMORY.spline_divide_count)
+    row.addWidget(slider, 1)
+    row.addWidget(spin)
+    lay.addLayout(row)
+
+    slider.valueChanged.connect(spin.setValue)
+    spin.valueChanged.connect(slider.setValue)
+
+    btns = QtWidgets.QHBoxLayout()
+    btns.addStretch()
+    ok_btn = QtWidgets.QPushButton("执行拆分")
+    ok_btn.setObjectName("okBtn")
+    cancel_btn = QtWidgets.QPushButton("取消")
+    btns.addWidget(ok_btn)
+    btns.addWidget(cancel_btn)
+    lay.addLayout(btns)
+
+    def do_divide() -> None:
+        divs = spin.value()
+        _MEMORY.spline_divide_count = divs
+        ms = (
+            '(undo "MaxHotbox: Spline Divide" on ('
+            "if selection.count > 0 do ("
+            "local sh = selection[1];"
+            "if (classOf sh == SplineShape or classOf sh == line) do ("
+            "for s = 1 to (numSplines sh) do ("
+            "local segs = getSegSelection sh s;"
+            "for idx = segs.count to 1 by -1 do ("
+            f"subdivideSegment sh s segs[idx] {divs}));"
+            "updateShape sh))))"
+        )
+        rt.execute(ms)
+        rt.pushPrompt(f"MaxHotbox 样条拆分: 已对选中线段各插入 {divs} 个顶点")
+        dlg.accept()
+
+    ok_btn.clicked.connect(do_divide)
+    cancel_btn.clicked.connect(dlg.reject)
     _show_single_panel(dlg)
 
 

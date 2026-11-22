@@ -158,9 +158,11 @@ def build() -> dict[str, Path]:
     _copy_with_utf8_bom(SRC_MAXSCRIPT / "uninstall_helper.ms", scripts_dir / "uninstall_helper.ms")
     shutil.copytree(SRC_PYTHON, python_dir, ignore=_ignore_junk)
 
-    # Copy convenient top-level launchers into dist/
+    # Copy convenient top-level launchers into dist/ (self-contained!)
     shutil.copy2(PROJECT_ROOT / "install.bat", DIST_DIR / "install.bat")
     shutil.copy2(PROJECT_ROOT / "uninstall.bat", DIST_DIR / "uninstall.bat")
+    _copy_with_utf8_bom(PACKAGING_DIR / "install.ps1", DIST_DIR / "install.ps1")
+    _copy_with_utf8_bom(PACKAGING_DIR / "uninstall.ps1", DIST_DIR / "uninstall.ps1")
     _copy_with_utf8_bom(PACKAGING_DIR / "Load_MaxHotbox_Now.ms", DIST_DIR / "Load_MaxHotbox_Now.ms")
 
     # 3. Validate bundle

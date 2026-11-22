@@ -44,6 +44,14 @@ def resolve_profile_id(trigger: str, ctx: MaxContext) -> str:
         return "ctrl_shift_rmb_transform"
 
     if trigger == TRIGGER_SHIFT_RMB:
+        if ctx.object_category == "spline" and ctx.selection_count > 0:
+            if ctx.subobject_level == 1:
+                return "shift_rmb_spline_vertex"
+            if ctx.subobject_level == 2:
+                return "shift_rmb_spline_segment"
+            if ctx.subobject_level == 3:
+                return "shift_rmb_spline_spline"
+            return "shift_rmb_spline_object"
         if ctx.selection_count == 0 or not ctx.is_poly_editable or ctx.subobject_level == 0:
             return "shift_rmb_object"
         if ctx.subobject_level == 1:

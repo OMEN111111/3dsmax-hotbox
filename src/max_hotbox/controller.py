@@ -80,6 +80,7 @@ class MaxHotboxController(QtCore.QObject):
                 "graphite_select_hard_edges_settings": lambda: graphite_tools.open_angle_select_panel("hard_edges"),
                 "graphite_select_by_angle": graphite_tools.run_select_coplanar_faces,
                 "graphite_select_by_angle_settings": lambda: graphite_tools.open_angle_select_panel("coplanar"),
+                "spline_divide_settings": graphite_tools.open_spline_divide_panel,
             },
         )
 
@@ -462,10 +463,9 @@ class MaxHotboxController(QtCore.QObject):
         rstate = self._state.radial_state
         if rstate is None:
             return
-        item = rstate.selected_item()
-        if item is not None and item.command_type == "submenu" and item.submenu_id:
+        key = rstate.current_submenu_key()
+        if key is not None and key != rstate.blocked_reenter_key:
             dwell_sec = max(0.08, self._config.settings.submenu_dwell_ms / 1000.0)
-            key = f"{rstate.profile.profile_id}:{rstate.hit.direction}:{item.submenu_id}"
             now = time.monotonic()
             if self._submenu_hover_key != key:
                 self._submenu_hover_key = key

@@ -24,6 +24,8 @@ from .geometry import (
 class RadialHistoryEntry:
     profile: RadialMenuProfile
     origin: Point2D
+    entered_direction: str | None = None
+    entered_submenu_id: str = ""
 
 
 @dataclass
@@ -39,8 +41,15 @@ class RadialSessionState:
     slot_geoms: dict[str, ItemButtonGeometry] = field(default_factory=dict)
     extra_geoms: list[ItemButtonGeometry] = field(default_factory=list)
     back_rect: Rect2D | None = None
+    blocked_reenter_key: str | None = None
     layout_revision: int = 1
     source_hwnd: int = 0
+
+    def current_submenu_key(self) -> str | None:
+        item = self.selected_item()
+        if item is not None and item.command_type == "submenu" and item.submenu_id:
+            return f"{self.profile.profile_id}:{self.hit.direction}:{item.submenu_id}"
+        return None
 
     def selected_item(self) -> MenuItem | None:
         if self.hit.kind == "direction" and self.hit.direction:
@@ -214,12 +223,21 @@ class HotboxStateMachine:
         )
         self._radial.cursor = cursor
         self._radial.hit = hit
+        # Clear submenu re-entry lock the moment the cursor leaves the just-exited submenu button
+        if (
+            self._radial.blocked_reenter_key is not None
+            and self._radial.current_submenu_key() != self._radial.blocked_reenter_key
+        ):
+            self._radial.blocked_reenter_key = None
         self._emit_radial()
         return hit
 
     def enter_submenu_if_selected(self, new_origin: Point2D | None = None) -> bool:
         """If the currently hovered item is a submenu, pivot into it at `new_origin`."""
         if self._radial is None:
+            return False
+        cur_key = self._radial.current_submenu_key()
+        if cur_key is None or cur_key == self._radial.blocked_reenter_key:
             return False
         item = self._radial.selected_item()
         if item is None or item.command_type != "submenu" or not item.submenu_id:
@@ -232,7 +250,12 @@ class HotboxStateMachine:
         # Anchor submenu cleanly at the cursor (just like Maya's hierarchical marking menu)
         origin = new_origin or self._radial.cursor
         self._radial.profile_stack.append(
-            RadialHistoryEntry(profile=self._radial.profile, origin=self._radial.origin)
+            RadialHistoryEntry(
+                profile=self._radial.profile,
+                origin=self._radial.origin,
+                entered_direction=self._radial.hit.direction,
+                entered_submenu_id=item.submenu_id,
+            )
         )
         slot_geoms, extra_geoms = self._build_radial_geoms(origin, sub_profile, cfg)
         self._radial.profile = sub_profile
@@ -242,12 +265,13 @@ class HotboxStateMachine:
         self._radial.slot_geoms = slot_geoms
         self._radial.extra_geoms = extra_geoms
         self._radial.back_rect = compute_back_button_rect(origin, scale=cfg.settings.ui_scale)
+        self._radial.blocked_reenter_key = None
         self._radial.layout_revision = self._next_revision()
         self._emit_radial()
         return True
 
     def step_back_submenu(self) -> bool:
-        """Return to the parent radial profile when inside a submenu."""
+        """Return to the parent radial profile and lock re-entry on the exited slot until cursor leaves it."""
         if self._radial is None or not self._radial.profile_stack:
             return False
         cfg = self._get_config()
@@ -255,13 +279,31 @@ class HotboxStateMachine:
         slot_geoms, extra_geoms = self._build_radial_geoms(parent.origin, parent.profile, cfg)
         self._radial.profile = parent.profile
         self._radial.origin = parent.origin
-        self._radial.hit = RadialHitResult(kind="center")
         self._radial.slot_geoms = slot_geoms
         self._radial.extra_geoms = extra_geoms
         self._radial.back_rect = (
             compute_back_button_rect(parent.origin, scale=cfg.settings.ui_scale)
             if self._radial.profile_stack
             else None
+        )
+        # Prevent immediate ping-pong re-expansion while cursor is still resting on the exited submenu button
+        if parent.entered_direction and parent.entered_submenu_id:
+            self._radial.blocked_reenter_key = (
+                f"{parent.profile.profile_id}:{parent.entered_direction}:{parent.entered_submenu_id}"
+            )
+        else:
+            self._radial.blocked_reenter_key = None
+        # Re-evaluate hit immediately against the parent layout so highlight matches cursor accurately
+        scale = cfg.settings.ui_scale
+        self._radial.hit = hit_test_radial(
+            origin=self._radial.origin,
+            cursor=self._radial.cursor,
+            deadzone_radius=cfg.settings.deadzone_radius * scale,
+            sector_count=8,
+            available_directions=self._radial.profile.enabled_directions(),
+            slot_geoms=self._radial.slot_geoms,
+            extra_geoms=self._radial.extra_geoms,
+            back_rect=self._radial.back_rect,
         )
         self._radial.layout_revision = self._next_revision()
         self._emit_radial()

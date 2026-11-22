@@ -316,6 +316,8 @@ class RadialMenuOverlay(QtWidgets.QWidget):
             if state.hit.is_option_box and sel.has_option_box():
                 return sel.option_tooltip or "□ 数值参数面板"
             if sel.command_type == "submenu":
+                if state.current_submenu_key() == state.blocked_reenter_key:
+                    return "已返回上级（移开重选）"
                 return "悬停展开子菜单 ▸"
             if sel.tooltip:
                 return sel.tooltip

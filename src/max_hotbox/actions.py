@@ -48,8 +48,21 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "mod_sweep": "添加 Sweep 扫描修改器",
     "mod_prooptimizer": "添加 ProOptimizer 减面优化修改器",
     "mod_mirror": "添加 Mirror 镜像修改器",
+    # Spline Modifiers (样条线修改器)
+    "mod_normalize_spline": "添加 Normalize Spline 规格化样条线修改器",
+    "mod_edit_spline": "添加 Edit Spline 编辑样条线修改器",
+    "mod_bevel": "添加 Bevel 倒角修改器",
+    "mod_bevel_profile": "添加 Bevel Profile 倒角剖面修改器",
+    "mod_surface": "添加 Surface 曲面修改器",
+    "mod_crosssection": "添加 CrossSection 横截面修改器",
+    "mod_fillet_chamfer": "添加 Fillet/Chamfer 样条圆角切角修改器",
+    "mod_spline_relax": "添加 Spline Relax 样条松弛修改器",
+    "mod_renderable_spline": "添加 Renderable Spline 可渲染样条线修改器",
+    "mod_garment_maker": "添加 Garment Maker 服装生成器修改器",
+    "mod_spline_select": "添加 Spline Select 样条线选择修改器",
     # Graphite Modeling & Selection Tools (石墨工具 + 自建参数面板)
     "graphite_swift_loop": "石墨: 快速循环加线 (Swift Loop)",
+    "graphite_step_loop": "石墨: 步骤循环 (Step Loop)",
     "graphite_flow_connect": "石墨: 流连接 (Flow Connect)",
     "graphite_set_flow": "石墨: 设置流 (Set Flow)",
     "graphite_space_loop": "石墨: 间距均分 (Space Loop)",
@@ -129,9 +142,38 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "select_invert": "反选 (Invert Selection)",
     "select_all": "全选 (Select All)",
     "select_none": "清除选择 (Select None)",
-    # Spline operations
-    "spline_refine": "样条线加点优化 (Refine)",
-    "spline_weld": "样条线焊接顶点 (Weld)",
+    # Spline operations (样条线三层级完整工具)
+    "spline_refine": "样条: 优化加点 (Refine)",
+    "spline_insert": "样条: 插入顶点 (Insert)",
+    "spline_weld": "样条: 焊接顶点 (Weld)",
+    "spline_fuse": "样条: 融合顶点 (Fuse)",
+    "spline_break": "样条: 断开顶点 (Break)",
+    "spline_fillet": "样条: 顶点圆角 (Fillet)",
+    "spline_chamfer": "样条: 顶点切角 (Chamfer)",
+    "spline_connect": "样条: 连接端点 (Connect)",
+    "spline_cross_insert": "样条: 跨接插入 (Cross Insert)",
+    "spline_make_first": "样条: 设为首顶点 (Make First)",
+    "spline_cycle": "样条: 循环顶点 (Cycle)",
+    "spline_knot_corner": "样条顶点类型: 角点 (Corner)",
+    "spline_knot_smooth": "样条顶点类型: 平滑 (Smooth)",
+    "spline_knot_bezier": "样条顶点类型: 贝塞尔 (Bezier)",
+    "spline_knot_bezier_corner": "样条顶点类型: 贝塞尔角点 (Bezier Corner)",
+    "spline_divide": "样条线段: 拆分 (Divide)",
+    "spline_divide_settings": "样条线段: 拆分分段数面板 (自建 □)",
+    "spline_detach": "样条: 分离 (Detach)",
+    "spline_attach": "样条: 附加 (Attach)",
+    "spline_seg_line": "样条线段: 转为直线 (Line)",
+    "spline_seg_curve": "样条线段: 转为曲线 (Curve)",
+    "spline_outline": "样条: 轮廓偏移 (Outline)",
+    "spline_trim": "样条: 修剪 (Trim)",
+    "spline_extend": "样条: 延伸 (Extend)",
+    "spline_bool_union": "样条布尔: 并集 (Union)",
+    "spline_bool_subtract": "样条布尔: 差集 (Subtract)",
+    "spline_bool_intersect": "样条布尔: 交集 (Intersect)",
+    "spline_reverse": "样条: 反转方向 (Reverse)",
+    "spline_close": "样条: 闭合曲线 (Close)",
+    "spline_explode": "样条: 炸开为独立对象 (Explode)",
+    "spline_mirror_horiz": "样条: 水平镜像 (Mirror Horizontal)",
     # Scene visibility, shading & isolation
     "toggle_isolate": "切换孤立选择 (Isolate Selection)",
     "hide_selected": "隐藏选中对象 (Hide Selected)",
@@ -366,9 +408,58 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         '(undo "MaxHotbox: Add Mirror" on ('
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Mirror()) ui:on)))"
     ),
+    # ------------------------------------------------------ Spline Modifiers
+    "mod_normalize_spline": (
+        '(undo "MaxHotbox: Normalize Spline" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; "
+        "try (modPanel.addModToSelection (Normalize_Spl()) ui:on) catch (modPanel.addModToSelection (Normalize_Spline()) ui:on))))"
+    ),
+    "mod_edit_spline": (
+        '(undo "MaxHotbox: Edit Spline" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Edit_Spline()) ui:on)))"
+    ),
+    "mod_bevel": (
+        '(undo "MaxHotbox: Add Bevel" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Bevel Level_1_Height:5.0) ui:on)))"
+    ),
+    "mod_bevel_profile": (
+        '(undo "MaxHotbox: Bevel Profile" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Bevel_Profile()) ui:on)))"
+    ),
+    "mod_surface": (
+        '(undo "MaxHotbox: Add Surface" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Surface()) ui:on)))"
+    ),
+    "mod_crosssection": (
+        '(undo "MaxHotbox: CrossSection" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (CrossSection()) ui:on)))"
+    ),
+    "mod_fillet_chamfer": (
+        '(undo "MaxHotbox: Fillet/Chamfer" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Fillet_Chamfer()) ui:on)))"
+    ),
+    "mod_spline_relax": (
+        '(undo "MaxHotbox: Spline Relax" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (SplineRelax()) ui:on) catch ())))"
+    ),
+    "mod_renderable_spline": (
+        '(undo "MaxHotbox: Renderable Spline" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Renderable_Spline()) ui:on)))"
+    ),
+    "mod_garment_maker": (
+        '(undo "MaxHotbox: Garment Maker" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Garment_Maker()) ui:on)))"
+    ),
+    "mod_spline_select": (
+        '(undo "MaxHotbox: Spline Select" on ('
+        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (SplineSelect()) ui:on)))"
+    ),
     # ---------------------------------------------- Graphite Modeling Tools
     "graphite_swift_loop": (
         "(try (macros.run \"PolyTools\" \"SwiftLoop\") catch (try (PolyToolsModeling.SwiftLoop()) catch ()))"
+    ),
+    "graphite_step_loop": (
+        "(try (PolyToolsSelect.StepLoop false) catch ())"
     ),
     "graphite_flow_connect": (
         '(undo "MaxHotbox: Flow Connect" on (try (macros.run "PolyTools" "FlowConnect") catch (try (PolyToolsModeling.FlowConnect()) catch ())))'
@@ -670,8 +761,72 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "select_all": "(max select all)",
     "select_none": "(max select none)",
     # ------------------------------------------------------------ Spline Ops
-    "spline_refine": "(local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startRefine cur)",
-    "spline_weld": '(undo "MaxHotbox: Spline Weld" on (local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.weld cur))',
+    "spline_refine": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startRefine cur)",
+    "spline_insert": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startInsert cur)",
+    "spline_weld": '(undo "MaxHotbox: Spline Weld" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.weld cur))',
+    "spline_fuse": '(undo "MaxHotbox: Spline Fuse" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.fuse cur))',
+    "spline_break": '(undo "MaxHotbox: Spline Break" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startBreak cur))',
+    "spline_fillet": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startFillet cur)",
+    "spline_chamfer": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startChamfer cur)",
+    "spline_connect": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startConnect cur)",
+    "spline_cross_insert": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startCrossInsert cur)",
+    "spline_make_first": '(undo "MaxHotbox: Spline Make First" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.makeFirst cur))',
+    "spline_cycle": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.cycle cur)",
+    "spline_knot_corner": (
+        '(undo "MaxHotbox: Knot Corner" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #corner);"
+        "updateShape sh))))"
+    ),
+    "spline_knot_smooth": (
+        '(undo "MaxHotbox: Knot Smooth" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #smooth);"
+        "updateShape sh))))"
+    ),
+    "spline_knot_bezier": (
+        '(undo "MaxHotbox: Knot Bezier" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #bezier);"
+        "updateShape sh))))"
+    ),
+    "spline_knot_bezier_corner": (
+        '(undo "MaxHotbox: Knot Bezier Corner" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #bezierCorner);"
+        "updateShape sh))))"
+    ),
+    "spline_divide": '(undo "MaxHotbox: Spline Divide" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.divide cur))',
+    "spline_detach": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.detach cur)",
+    "spline_attach": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startAttach cur)",
+    "spline_seg_line": (
+        '(undo "MaxHotbox: Segment to Line" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for sg in (getSegSelection sh s) do setSegmentType sh s sg #line);"
+        "updateShape sh))))"
+    ),
+    "spline_seg_curve": (
+        '(undo "MaxHotbox: Segment to Curve" on ('
+        "if selection.count > 0 do (local sh = selection[1];"
+        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "for s = 1 to (numSplines sh) do (for sg in (getSegSelection sh s) do setSegmentType sh s sg #curve);"
+        "updateShape sh))))"
+    ),
+    "spline_outline": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startOutline cur)",
+    "spline_trim": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startTrim cur)",
+    "spline_extend": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startExtend cur)",
+    "spline_bool_union": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startUnion cur)",
+    "spline_bool_subtract": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startSubtract cur)",
+    "spline_bool_intersect": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startIntersect cur)",
+    "spline_reverse": '(undo "MaxHotbox: Spline Reverse" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.reverse cur))',
+    "spline_close": '(undo "MaxHotbox: Spline Close" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.close cur))',
+    "spline_explode": '(undo "MaxHotbox: Spline Explode" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.explode cur))',
+    "spline_mirror_horiz": '(undo "MaxHotbox: Spline Mirror" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.mirrorHoriz cur))',
     # --------------------------------------------------- Visibility & Display
     "toggle_isolate": (
         "(if IsolateSelection.IsolateSelectionModeActive() then "
