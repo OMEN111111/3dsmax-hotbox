@@ -80,6 +80,9 @@ class MaxHotboxController(QtCore.QObject):
                 "graphite_select_hard_edges_settings": lambda: graphite_tools.open_angle_select_panel("hard_edges"),
                 "graphite_select_by_angle": graphite_tools.run_select_coplanar_faces,
                 "graphite_select_by_angle_settings": lambda: graphite_tools.open_angle_select_panel("coplanar"),
+                "graphite_select_similar": graphite_tools.run_select_similar,
+                "graphite_select_similar_settings": graphite_tools.open_select_similar_panel,
+                "poly_autosmooth_settings": graphite_tools.open_smoothing_groups_panel,
                 "spline_divide_settings": graphite_tools.open_spline_divide_panel,
             },
         )

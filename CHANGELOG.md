@@ -2,6 +2,22 @@
 
 All notable changes to **MaxHotbox** will be documented in this file.
 
+## [0.1.3] - 2026-11-23 (Beta Update)
+
+### Fixed
+- **Bridge Main Button & Option Box (`□`) (`BUG-001`)**: Fixed `poly_bridge` to trigger direct `ButtonOp #BridgeEdge/#BridgeBorder/#BridgePolygon` without accidentally popping the dialog, and fixed `poly_bridge_settings` (`□`) to open the numeric Bridge caddy via `PopupDialog #BridgeEdge/#BridgeBorder/#BridgePolygon` (with `#Bridge` fallback) on both `Editable_Poly` and `Edit_Poly`.
+- **Deform & UV Modifiers Split (`BUG-002`)**: Separated `变形修改器` (`submenu_modifiers_deform`) from `UV 修改器` (`submenu_modifiers_uv`) so UV tools (`Unwrap UVW`, `UVW Map`, `UVW XForm`, `MapScaler`, `UVW Mapping Clear`, `UVW Mapping Add`, `Projection`) have their own dedicated submenu.
+- **Spline Vertex Fillet & All `splineOps` (`BUG-003`)**: Fixed `splineOps.startFillet` (and all 20+ `splineOps.*` commands) by passing `selection[1]` for `Editable_Spline`/`Line` base objects and `cur` for `Edit_Spline` modifiers while ensuring the proper `subObjectLevel`.
+- **Spline Segment Sub-Object Switching (`BUG-004`)**: Added dedicated `subobj_spline_vertex` (`1`), `subobj_spline_segment` (`2`), and `subobj_spline_spline` (`3`) commands with `max modify mode`, `numSubObjectLevels` guard, and `redrawViews()` so Spline `Vertex / Segment / Spline` all switch reliably.
+- **Normalize Spline Modifier (`BUG-005`)**: Updated `mod_normalize_spline` to exit sub-object mode and instantiate 3ds Max 2021–2026's modern `Normalize_Spline2()` class first (with `Normalize_Spl()` / `Normalize_Spline()` fallback).
+- **Unified Sub-Object Spatial Layout (`BUG-006`)**: Standardized muscle-memory compass positions across Vertex / Edge / Border / Polygon menus (`N = Extrude [□]`, `W = Collapse`, `NW = Cut & Planar ▸`, `SE = Graphite ▸`, `NE = Chamfer [□] / Inset [□]`).
+
+### Added
+- **Graphite Select Similar (`选择相似`) + `□` Parameter Panel (`FEAT-001`)**: Added `Select Similar` to `Ctrl+RMB` and `石墨选择工具`, supporting Object / Vertex / Edge / Polygon with a live-preview PySide6 dialog (`0%–50%` tolerance, topology & size matching, cancel-to-restore).
+- **Auto Smooth & Smoothing Groups Panel (`平滑组设置框`) (`FEAT-002`)**: Added `□` panel to `自动平滑 Auto Smooth` featuring a live Auto Smooth angle threshold slider (`0°–180°`), Clear All, and an interactive `8×4` `1–32` Smoothing Groups toggle matrix.
+- **Gizmo Transform Center Switching (`GIZMO 调整中心`) (`FEAT-003`)**: Added `使用轴点中心 (Pivot Point Center)`, `使用选择中心 (Selection Center)`, and `使用变换坐标中心 (Transform Coordinate Center)` to `Ctrl+Shift+RMB` and `枢轴与中心 ▸`.
+- **5-Category Expanded Modifier Suite (`FEAT-004`)**: Reorganized `常用修改器` into 5 clean submenus — **常用修改器**、**变形修改器** (`Bend`, `Twist`, `Noise`, `Push`, `Relax`, `Taper`, `FFD 2/3/4`, `Spherify`, `Wave`, `Ripple`, `Stretch`, `Skew`, `Displace`)、**UV 修改器** (`Unwrap UVW`, `UVW Map`, `UVW XForm`, `MapScaler`, `UVW Clear`, `UVW Add`, `Projection`)、**样条修改器** (14 spline modifiers)、**拓扑与法线** (`Chamfer`, `OpenSubdiv`, `Weighted Normals`, `Edit Normals`, `Cap Holes`, `Lattice`, `ProOptimizer`, `Smooth`, `Slice`, `Quadify Mesh`, `Mirror`, `Turn to Poly`, `DeleteMesh`).
+
 ## [0.1.2] - 2026-11-22 (Beta Update)
 
 ### Fixed

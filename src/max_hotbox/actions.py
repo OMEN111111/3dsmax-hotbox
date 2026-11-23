@@ -17,12 +17,15 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "subobj_border": "边界/样条子层级 (Border / Spline / 3)",
     "subobj_polygon": "多边形子层级 (Polygon / 4)",
     "subobj_element": "元素子层级 (Element / 5)",
+    "subobj_spline_vertex": "样条线顶点层级 (Spline Vertex / 1)",
+    "subobj_spline_segment": "样条线线段层级 (Spline Segment / 2)",
+    "subobj_spline_spline": "样条线子层级 (Spline / 3)",
     # Convert & stack
     "convert_to_poly": "转换为可编辑多边形 (Convert to Editable Poly)",
     "convert_to_spline": "转换为可编辑样条线 (Convert to Editable Spline)",
     "collapse_stack": "塌陷修改器堆栈 (Collapse Stack)",
     "clone_object": "原位克隆对象 (Clone Selection)",
-    # Modifiers
+    # Modifiers — Core / UV / Deform / Topology / Spline
     "mod_edit_poly": "添加 Edit Poly 编辑多边形修改器",
     "mod_turbosmooth": "添加 TurboSmooth 涡轮平滑修改器",
     "mod_opensubdiv": "添加 OpenSubdiv 细分修改器",
@@ -30,6 +33,11 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "mod_shell": "添加 Shell 壳修改器",
     "mod_unwrap_uvw": "添加 Unwrap UVW 展UV修改器",
     "mod_uvw_map": "添加 UVW Map 贴图坐标修改器",
+    "mod_uvw_clear": "添加 UVW Mapping Clear 清除UV修改器",
+    "mod_uvw_xform": "添加 UVW XForm 变换UV修改器",
+    "mod_uvw_add": "添加 UVW Mapping Add 添加UV通道修改器",
+    "mod_projection": "添加 Projection 烘焙投影修改器",
+    "mod_mapscaler": "添加 MapScaler 贴图缩放修改器",
     "mod_extrude": "添加 Extrude 挤出修改器",
     "mod_chamfer": "添加 Chamfer 切角修改器",
     "mod_weighted_normals": "添加 Weighted Normals 加权法线修改器",
@@ -41,12 +49,24 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "mod_twist": "添加 Twist 扭曲修改器",
     "mod_taper": "添加 Taper 锥化修改器",
     "mod_noise": "添加 Noise 噪波修改器",
+    "mod_relax": "添加 Relax 松弛修改器",
     "mod_spherify": "添加 Spherify 球形化修改器",
     "mod_push": "添加 Push 推力修改器",
+    "mod_wave": "添加 Wave 波浪修改器",
+    "mod_ripple": "添加 Ripple 涟漪修改器",
+    "mod_stretch": "添加 Stretch 拉伸修改器",
+    "mod_skew": "添加 Skew 倾斜修改器",
+    "mod_displace": "添加 Displace 置换修改器",
     "mod_smooth": "添加 Smooth 平滑修改器",
     "mod_lathe": "添加 Lathe 车削修改器",
     "mod_sweep": "添加 Sweep 扫描修改器",
     "mod_prooptimizer": "添加 ProOptimizer 减面优化修改器",
+    "mod_cap_holes": "添加 Cap Holes 补洞修改器",
+    "mod_lattice": "添加 Lattice 晶格修改器",
+    "mod_slice": "添加 Slice 切片修改器",
+    "mod_quadify_mesh": "添加 Quadify Mesh 网格四角化修改器",
+    "mod_turn_to_poly": "添加 Turn to Poly 转多边形修改器",
+    "mod_delete_mesh": "添加 DeleteMesh 删除网格修改器",
     "mod_mirror": "添加 Mirror 镜像修改器",
     # Spline Modifiers (样条线修改器)
     "mod_normalize_spline": "添加 Normalize Spline 规格化样条线修改器",
@@ -85,6 +105,8 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "graphite_select_hard_edges_settings": "石墨: 硬边角度阈值面板 (自建 □)",
     "graphite_select_by_angle": "石墨: 按角度选共面 (Select by Angle)",
     "graphite_select_by_angle_settings": "石墨: 共面角度阈值面板 (自建 □)",
+    "graphite_select_similar": "石墨: 选择相似 (Select Similar)",
+    "graphite_select_similar_settings": "石墨: 选择相似容差面板 (自建 □)",
     # Poly modeling — Interactive viewport drag (main button)
     "poly_extrude": "挤出 - 视口鼠标拖动 (Interactive Extrude)",
     "poly_inset": "插入 - 视口鼠标拖动 (Interactive Inset)",
@@ -127,6 +149,7 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "poly_planar_y": "Y 轴平面化 (Make Planar Y)",
     "poly_planar_z": "Z 轴平面化 (Make Planar Z)",
     "poly_autosmooth": "自动平滑 (Auto Smooth)",
+    "poly_autosmooth_settings": "平滑组与自动平滑设置面板 (自建 □)",
     "poly_clear_sg": "清除平滑组 (Clear Smoothing Groups)",
     "poly_soft_selection": "切换软选择 (Toggle Soft Selection)",
     "poly_loop": "循环边选择 (Edge Loop)",
@@ -193,6 +216,9 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
     "coordsys_world": "世界坐标系 (World CoordSys)",
     "coordsys_view": "视图坐标系 (View CoordSys)",
     "coordsys_gimbal": "万向节坐标系 (Gimbal CoordSys)",
+    "gizmo_center_pivot": "变换中心: 使用轴点中心 (Use Pivot Point Center)",
+    "gizmo_center_selection": "变换中心: 使用选择中心 (Use Selection Center)",
+    "gizmo_center_transform": "变换中心: 使用变换坐标中心 (Use Transform Coord Center)",
     "toggle_snap": "切换捕捉 (Snap Toggle)",
     "toggle_angle_snap": "切换角度捕捉 (Angle Snap Toggle)",
     "tool_move": "移动工具 (Select and Move)",
@@ -264,31 +290,49 @@ BUILTIN_COMMAND_CATALOG: dict[str, str] = {
 # so `local` declarations are always valid inside `pymxs.runtime.execute(...)`.
 _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     # ------------------------------------------------------------ Sub-objects
-    "subobj_object": "(subObjectLevel = 0)",
+    "subobj_object": "(subObjectLevel = 0; redrawViews())",
     "subobj_vertex": (
         "(if selection.count > 0 do ("
         "if (getCommandPanelTaskMode() != #modify) do (setCommandPanelTaskMode #modify);"
-        "subObjectLevel = 1))"
+        "subObjectLevel = 1; redrawViews()))"
     ),
     "subobj_edge": (
         "(if selection.count > 0 do ("
         "if (getCommandPanelTaskMode() != #modify) do (setCommandPanelTaskMode #modify);"
-        "subObjectLevel = 2))"
+        "subObjectLevel = 2; redrawViews()))"
     ),
     "subobj_border": (
         "(if selection.count > 0 do ("
         "if (getCommandPanelTaskMode() != #modify) do (setCommandPanelTaskMode #modify);"
-        "subObjectLevel = 3))"
+        "subObjectLevel = 3; redrawViews()))"
     ),
     "subobj_polygon": (
         "(if selection.count > 0 do ("
         "if (getCommandPanelTaskMode() != #modify) do (setCommandPanelTaskMode #modify);"
-        "subObjectLevel = 4))"
+        "subObjectLevel = 4; redrawViews()))"
     ),
     "subobj_element": (
         "(if selection.count > 0 do ("
         "if (getCommandPanelTaskMode() != #modify) do (setCommandPanelTaskMode #modify);"
-        "subObjectLevel = 5))"
+        "subObjectLevel = 5; redrawViews()))"
+    ),
+    "subobj_spline_vertex": (
+        "(if selection.count > 0 do ("
+        "max modify mode;"
+        "if (numSubObjectLevels > 0) then (subObjectLevel = 1; redrawViews()) "
+        "else (pushPrompt \"MaxHotbox: 参数化图形无子层级，请先转换为可编辑样条线或添加 Edit Spline\")))"
+    ),
+    "subobj_spline_segment": (
+        "(if selection.count > 0 do ("
+        "max modify mode;"
+        "if (numSubObjectLevels >= 2) then (subObjectLevel = 2; redrawViews()) "
+        "else (pushPrompt \"MaxHotbox: 参数化图形无子层级，请先转换为可编辑样条线或添加 Edit Spline\")))"
+    ),
+    "subobj_spline_spline": (
+        "(if selection.count > 0 do ("
+        "max modify mode;"
+        "if (numSubObjectLevels >= 3) then (subObjectLevel = 3; redrawViews()) "
+        "else (pushPrompt \"MaxHotbox: 参数化图形无子层级，请先转换为可编辑样条线或添加 Edit Spline\")))"
     ),
     # -------------------------------------------------------- Convert & Stack
     "convert_to_poly": (
@@ -334,85 +378,158 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "mod_uvw_map": (
         '(undo "MaxHotbox: Add UVW Map" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Uvwmap maptype:4) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Uvwmap maptype:4) ui:on) catch (for o in selection do addModifier o (Uvwmap maptype:4)))))"
+    ),
+    "mod_uvw_clear": (
+        '(undo "MaxHotbox: UVW Mapping Clear" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (UVW_Mapping_Clear mapID:1) ui:on) catch (for o in selection do addModifier o (UVW_Mapping_Clear mapID:1)))))"
+    ),
+    "mod_uvw_xform": (
+        '(undo "MaxHotbox: UVW XForm" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (UVW_Xform()) ui:on) catch (for o in selection do addModifier o (UVW_Xform())))))"
+    ),
+    "mod_uvw_add": (
+        '(undo "MaxHotbox: UVW Mapping Add" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (UVW_Mapping_Add()) ui:on) catch (for o in selection do addModifier o (UVW_Mapping_Add())))))"
+    ),
+    "mod_projection": (
+        '(undo "MaxHotbox: Projection" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Projection()) ui:on) catch (for o in selection do addModifier o (Projection())))))"
+    ),
+    "mod_mapscaler": (
+        '(undo "MaxHotbox: MapScaler" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (MapScaler()) ui:on) catch (for o in selection do addModifier o (MapScaler())))))"
     ),
     "mod_extrude": (
         '(undo "MaxHotbox: Add Extrude" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Extrude amount:10.0) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Extrude amount:10.0) ui:on) catch (for o in selection do addModifier o (Extrude amount:10.0)))))"
     ),
     "mod_chamfer": (
         '(undo "MaxHotbox: Add Chamfer" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Chamfer amount:1.0 segments:2) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Chamfer amount:1.0 segments:2) ui:on) catch (for o in selection do addModifier o (Chamfer amount:1.0 segments:2)))))"
     ),
     "mod_weighted_normals": (
         '(undo "MaxHotbox: Add Weighted Normals" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Weighted_Normals()) ui:on) catch ())))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; try (modPanel.addModToSelection (Weighted_Normals()) ui:on) catch ())))"
     ),
     "mod_edit_normals": (
         '(undo "MaxHotbox: Add Edit Normals" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Edit_Normals()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Edit_Normals()) ui:on)))"
     ),
     "mod_ffd2": (
         '(undo "MaxHotbox: Add FFD 2x2x2" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_2x2x2()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_2x2x2()) ui:on)))"
     ),
     "mod_ffd3": (
         '(undo "MaxHotbox: Add FFD 3x3x3" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_3x3x3()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_3x3x3()) ui:on)))"
     ),
     "mod_ffd4": (
         '(undo "MaxHotbox: Add FFD 4x4x4" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_4x4x4()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (FFD_4x4x4()) ui:on)))"
     ),
     "mod_bend": (
         '(undo "MaxHotbox: Add Bend" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Bend()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Bend()) ui:on)))"
     ),
     "mod_twist": (
         '(undo "MaxHotbox: Add Twist" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Twist()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Twist()) ui:on)))"
     ),
     "mod_taper": (
         '(undo "MaxHotbox: Add Taper" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Taper()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Taper()) ui:on)))"
     ),
     "mod_noise": (
         '(undo "MaxHotbox: Add Noise" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Noisemodifier scale:20.0 strength:[5,5,5]) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Noisemodifier scale:20.0 strength:[5,5,5]) ui:on)))"
+    ),
+    "mod_relax": (
+        '(undo "MaxHotbox: Add Relax" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Relax iterations:3 relax_value:0.5) ui:on)))"
     ),
     "mod_spherify": (
         '(undo "MaxHotbox: Add Spherify" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Spherify()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Spherify()) ui:on)))"
     ),
     "mod_push": (
         '(undo "MaxHotbox: Add Push" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Push()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Push()) ui:on)))"
+    ),
+    "mod_wave": (
+        '(undo "MaxHotbox: Add Wave" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Wave()) ui:on)))"
+    ),
+    "mod_ripple": (
+        '(undo "MaxHotbox: Add Ripple" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Ripple()) ui:on)))"
+    ),
+    "mod_stretch": (
+        '(undo "MaxHotbox: Add Stretch" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Stretch()) ui:on)))"
+    ),
+    "mod_skew": (
+        '(undo "MaxHotbox: Add Skew" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Skew()) ui:on)))"
+    ),
+    "mod_displace": (
+        '(undo "MaxHotbox: Add Displace" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Displace()) ui:on)))"
     ),
     "mod_smooth": (
         '(undo "MaxHotbox: Add Smooth" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Smooth autosmooth:true) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Smooth autosmooth:true) ui:on)))"
     ),
     "mod_lathe": (
         '(undo "MaxHotbox: Add Lathe" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Lathe weldCore:true) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Lathe weldCore:true) ui:on)))"
     ),
     "mod_sweep": (
         '(undo "MaxHotbox: Add Sweep" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Sweep()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Sweep()) ui:on)))"
     ),
     "mod_prooptimizer": (
         '(undo "MaxHotbox: Add ProOptimizer" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (ProOptimizer()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (ProOptimizer()) ui:on)))"
+    ),
+    "mod_cap_holes": (
+        '(undo "MaxHotbox: Add Cap Holes" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Cap_Holes()) ui:on)))"
+    ),
+    "mod_lattice": (
+        '(undo "MaxHotbox: Add Lattice" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Lattice()) ui:on)))"
+    ),
+    "mod_slice": (
+        '(undo "MaxHotbox: Add Slice" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (SliceModifier()) ui:on)))"
+    ),
+    "mod_quadify_mesh": (
+        '(undo "MaxHotbox: Add Quadify Mesh" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Quadify_Mesh()) ui:on)))"
+    ),
+    "mod_turn_to_poly": (
+        '(undo "MaxHotbox: Add Turn to Poly" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Turn_to_Poly()) ui:on)))"
+    ),
+    "mod_delete_mesh": (
+        '(undo "MaxHotbox: Add DeleteMesh" on ('
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (DeleteMesh()) ui:on)))"
     ),
     "mod_mirror": (
         '(undo "MaxHotbox: Add Mirror" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Mirror()) ui:on)))"
+        "if selection.count > 0 do (subObjectLevel = 0; setCommandPanelTaskMode #modify; modPanel.addModToSelection (Mirror()) ui:on)))"
     ),
     # ------------------------------------------------------ Spline Modifiers
     "mod_normalize_spline": (
         '(undo "MaxHotbox: Normalize Spline" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; "
-        "try (modPanel.addModToSelection (Normalize_Spl()) ui:on) catch (modPanel.addModToSelection (Normalize_Spline()) ui:on))))"
+        "if selection.count > 0 do ("
+        "subObjectLevel = 0; setCommandPanelTaskMode #modify;"
+        "local m = undefined;"
+        "try (m = Normalize_Spline2()) catch ();"
+        "if m == undefined do try (m = Normalize_Spl()) catch ();"
+        "if m == undefined do try (m = Normalize_Spline()) catch ();"
+        "if m != undefined do (try (modPanel.addModToSelection m ui:on) catch (for o in selection do addModifier o (copy m))))))"
     ),
     "mod_edit_spline": (
         '(undo "MaxHotbox: Edit Spline" on ('
@@ -527,10 +644,13 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         "if subObjectLevel == 1 then cur.ButtonOp #ConnectVertices else cur.ButtonOp #ConnectEdges)))"
     ),
     "poly_bridge": (
-        "(local cur = modPanel.getCurrentObject();"
+        '(undo "MaxHotbox: Bridge" on ('
+        "local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
         "local modeSym = case subObjectLevel of (2: #BridgeEdge; 3: #BridgeBorder; default: #BridgePolygon);"
-        "try (cur.ToggleCommandMode modeSym) catch (try (cur.PopupDialog #Bridge) catch (cur.PopupDialog modeSym))))"
+        "local ok = false;"
+        "try (ok = (cur.ButtonOp modeSym); if ok == undefined do ok = true) catch (ok = false);"
+        "if not ok do try (cur.ToggleCommandMode modeSym) catch ())))"
     ),
     "poly_weld": (
         "(local cur = modPanel.getCurrentObject();"
@@ -592,9 +712,11 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "poly_bridge_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.PopupDialog #Bridge "
-        "else if classOf cur == Edit_Poly then ("
-        "case subObjectLevel of (2: cur.PopupDialog #BridgeEdge; 3: cur.PopupDialog #BridgeBorder; default: cur.PopupDialog #BridgePolygon)))"
+        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
+        "local modeSym = case subObjectLevel of (2: #BridgeEdge; 3: #BridgeBorder; default: #BridgePolygon);"
+        "local ok = false;"
+        "try (ok = (cur.PopupDialog modeSym); if ok == undefined do ok = true) catch (ok = false);"
+        "if not ok do try (cur.PopupDialog #Bridge) catch ()))"
     ),
     "poly_weld_settings": (
         "(local cur = modPanel.getCurrentObject();"
@@ -761,17 +883,63 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "select_all": "(max select all)",
     "select_none": "(max select none)",
     # ------------------------------------------------------------ Spline Ops
-    "spline_refine": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startRefine cur)",
-    "spline_insert": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startInsert cur)",
-    "spline_weld": '(undo "MaxHotbox: Spline Weld" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.weld cur))',
-    "spline_fuse": '(undo "MaxHotbox: Spline Fuse" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.fuse cur))',
-    "spline_break": '(undo "MaxHotbox: Spline Break" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startBreak cur))',
-    "spline_fillet": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startFillet cur)",
-    "spline_chamfer": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startChamfer cur)",
-    "spline_connect": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startConnect cur)",
-    "spline_cross_insert": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startCrossInsert cur)",
-    "spline_make_first": '(undo "MaxHotbox: Spline Make First" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.makeFirst cur))',
-    "spline_cycle": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.cycle cur)",
+    # NOTE: splineOps.* expects the scene node (selection[1]) for Editable_Spline/Line,
+    # and the Edit_Spline modifier instance when editing an Edit_Spline modifier.
+    "spline_refine": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel == 0 do subObjectLevel = 1; splineOps.startRefine tgt))"
+    ),
+    "spline_insert": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do splineOps.startInsert tgt)"
+    ),
+    "spline_weld": (
+        '(undo "MaxHotbox: Spline Weld" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.weld tgt)))"
+    ),
+    "spline_fuse": (
+        '(undo "MaxHotbox: Spline Fuse" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.fuse tgt)))"
+    ),
+    "spline_break": (
+        '(undo "MaxHotbox: Spline Break" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.startBreak tgt)))"
+    ),
+    "spline_fillet": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.startFillet tgt))"
+    ),
+    "spline_chamfer": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.startChamfer tgt))"
+    ),
+    "spline_connect": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.startConnect tgt))"
+    ),
+    "spline_cross_insert": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.startCrossInsert tgt))"
+    ),
+    "spline_make_first": (
+        '(undo "MaxHotbox: Spline Make First" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.makeFirst tgt)))"
+    ),
+    "spline_cycle": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 1 do subObjectLevel = 1; splineOps.cycle tgt))"
+    ),
     "spline_knot_corner": (
         '(undo "MaxHotbox: Knot Corner" on ('
         "if selection.count > 0 do (local sh = selection[1];"
@@ -800,9 +968,21 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #bezierCorner);"
         "updateShape sh))))"
     ),
-    "spline_divide": '(undo "MaxHotbox: Spline Divide" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.divide cur))',
-    "spline_detach": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.detach cur)",
-    "spline_attach": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startAttach cur)",
+    "spline_divide": (
+        '(undo "MaxHotbox: Spline Divide" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 2 do subObjectLevel = 2; splineOps.divide tgt)))"
+    ),
+    "spline_detach": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do splineOps.detach tgt)"
+    ),
+    "spline_attach": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do splineOps.startAttach tgt)"
+    ),
     "spline_seg_line": (
         '(undo "MaxHotbox: Segment to Line" on ('
         "if selection.count > 0 do (local sh = selection[1];"
@@ -817,16 +997,56 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         "for s = 1 to (numSplines sh) do (for sg in (getSegSelection sh s) do setSegmentType sh s sg #curve);"
         "updateShape sh))))"
     ),
-    "spline_outline": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startOutline cur)",
-    "spline_trim": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startTrim cur)",
-    "spline_extend": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startExtend cur)",
-    "spline_bool_union": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startUnion cur)",
-    "spline_bool_subtract": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startSubtract cur)",
-    "spline_bool_intersect": "(setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.startIntersect cur)",
-    "spline_reverse": '(undo "MaxHotbox: Spline Reverse" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.reverse cur))',
-    "spline_close": '(undo "MaxHotbox: Spline Close" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.close cur))',
-    "spline_explode": '(undo "MaxHotbox: Spline Explode" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.explode cur))',
-    "spline_mirror_horiz": '(undo "MaxHotbox: Spline Mirror" on (setCommandPanelTaskMode #modify; local cur = modPanel.getCurrentObject(); if cur != undefined do splineOps.mirrorHoriz cur))',
+    "spline_outline": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startOutline tgt))"
+    ),
+    "spline_trim": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startTrim tgt))"
+    ),
+    "spline_extend": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startExtend tgt))"
+    ),
+    "spline_bool_union": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startUnion tgt))"
+    ),
+    "spline_bool_subtract": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startSubtract tgt))"
+    ),
+    "spline_bool_intersect": (
+        "(max modify mode; local cur = modPanel.getCurrentObject();"
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.startIntersect tgt))"
+    ),
+    "spline_reverse": (
+        '(undo "MaxHotbox: Spline Reverse" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.reverse tgt)))"
+    ),
+    "spline_close": (
+        '(undo "MaxHotbox: Spline Close" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.close tgt)))"
+    ),
+    "spline_explode": (
+        '(undo "MaxHotbox: Spline Explode" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.explode tgt)))"
+    ),
+    "spline_mirror_horiz": (
+        '(undo "MaxHotbox: Spline Mirror" on (max modify mode; local cur = modPanel.getCurrentObject();'
+        "local tgt = if classOf cur == Edit_Spline then cur else (if selection.count > 0 then selection[1] else undefined);"
+        "if tgt != undefined do (if subObjectLevel != 3 do subObjectLevel = 3; splineOps.mirrorHoriz tgt)))"
+    ),
     # --------------------------------------------------- Visibility & Display
     "toggle_isolate": (
         "(if IsolateSelection.IsolateSelectionModeActive() then "
@@ -861,6 +1081,9 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "coordsys_world": "(toolMode.coordsys #world)",
     "coordsys_view": "(toolMode.coordsys #view)",
     "coordsys_gimbal": "(toolMode.coordsys #gimbal)",
+    "gizmo_center_pivot": "(toolMode.pivotCenter())",
+    "gizmo_center_selection": "(toolMode.selectionCenter())",
+    "gizmo_center_transform": "(toolMode.transformCenter())",
     "toggle_snap": "(snapMode.active = not snapMode.active)",
     "toggle_angle_snap": "(max angle snap toggle)",
     "tool_move": "(max move)",

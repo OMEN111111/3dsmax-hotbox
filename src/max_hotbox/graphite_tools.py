@@ -178,6 +178,48 @@ def flood_fill_faces_by_angle(
     return sorted(visited)
 
 
+def select_similar_by_signature(
+    seed_ids: list[int],
+    all_signatures: dict[int, tuple[int, float]],
+    tolerance_percent: float = 10.0,
+    match_topology: bool = True,
+    match_size: bool = True,
+) -> list[int]:
+    """Select all items whose (topology_count, geometric_size) matches any seed within tolerance.
+
+    Used for Graphite-style Select Similar on Vertices (valence, 0.0), Edges (adj_faces, length),
+    Polygons (side_count, area), and Scene Objects (face_count, bbox_diag).
+    """
+    if not seed_ids:
+        return []
+    tol = max(0.0, float(tolerance_percent)) / 100.0
+    seed_sigs = [all_signatures[sid] for sid in seed_ids if sid in all_signatures]
+    if not seed_sigs:
+        return []
+
+    matched: list[int] = []
+    for item_id, (topo, size) in all_signatures.items():
+        for s_topo, s_size in seed_sigs:
+            if match_topology and topo != s_topo:
+                continue
+            if match_size and s_size > 1e-6:
+                if abs(size - s_size) > s_size * tol + 1e-4:
+                    continue
+            matched.append(item_id)
+            break
+    return sorted(matched)
+
+
+def toggle_smoothing_group_bit(mask: int, group_1_to_32: int, enable: bool | None = None) -> int:
+    """Set, clear, or toggle bit `(group_1_to_32 - 1)` in a 32-bit 3ds Max smoothing group mask."""
+    if not (1 <= group_1_to_32 <= 32):
+        return mask
+    bit = 1 << (group_1_to_32 - 1)
+    if enable is None:
+        return mask ^ bit
+    return (mask | bit) if enable else (mask & ~bit)
+
+
 # ------------------------------------------- Persistent In-Memory Tool Params
 
 
@@ -192,6 +234,10 @@ class GraphiteToolMemory:
     dot_opposite: bool = False
     hard_edge_angle: float = 30.0
     coplanar_angle: float = 25.0
+    similar_tolerance: int = 10
+    similar_match_topo: bool = True
+    similar_match_size: bool = True
+    auto_smooth_angle: float = 45.0
     spline_divide_count: int = 2
 
 
@@ -978,6 +1024,358 @@ def open_spline_divide_panel() -> None:
 
     ok_btn.clicked.connect(do_divide)
     cancel_btn.clicked.connect(dlg.reject)
+    _show_single_panel(dlg)
+
+
+# --------------------------------------------- Select Similar (FEAT-001)
+
+
+def _collect_poly_similar_signatures(rt: Any, node: Any, sub: int) -> dict[int, tuple[int, float]]:
+    """Build (topology_count, geometric_size) signatures for Vertex/Edge/Polygon."""
+    sigs: dict[int, tuple[int, float]] = {}
+    if sub == 1:
+        num_v = int(rt.polyop.getNumVerts(node))
+        for vid in range(1, num_v + 1):
+            edges = _from_bitarray(rt.polyop.getEdgesUsingVert(node, vid))
+            sigs[vid] = (len(edges), 0.0)
+    elif sub in (2, 3):
+        num_e = int(rt.polyop.getNumEdges(node))
+        for eid in range(1, num_e + 1):
+            verts = _from_bitarray(rt.polyop.getEdgeVerts(node, eid))
+            faces = _from_bitarray(rt.polyop.getEdgeFaces(node, eid))
+            length = 0.0
+            if len(verts) == 2:
+                p1 = rt.polyop.getVert(node, verts[0])
+                p2 = rt.polyop.getVert(node, verts[1])
+                length = math.sqrt(
+                    (float(p2.x) - float(p1.x)) ** 2
+                    + (float(p2.y) - float(p1.y)) ** 2
+                    + (float(p2.z) - float(p1.z)) ** 2
+                )
+            sigs[eid] = (len(faces), length)
+    else:
+        num_f = int(rt.polyop.getNumFaces(node))
+        for fid in range(1, num_f + 1):
+            deg = int(rt.polyop.getFaceDeg(node, fid))
+            area = float(rt.polyop.getFaceArea(node, fid))
+            sigs[fid] = (deg, area)
+    return sigs
+
+
+def run_select_similar(
+    tolerance_pct: int | None = None,
+    match_topo: bool | None = None,
+    match_size: bool | None = None,
+) -> int:
+    """Graphite-style Select Similar working across Object, Vertex, Edge, and Polygon levels."""
+    rt = _get_rt()
+    try:
+        if int(rt.selection.count) == 0:
+            rt.pushPrompt("MaxHotbox 选择相似: 请先选中参考对象或子对象")
+            return 0
+    except Exception:
+        return 0
+
+    sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
+    if sub == 0:
+        # Object-level Select Similar via native 3ds Max command
+        try:
+            rt.execute('(actionMan.executeAction 0 "40099")')
+        except Exception:
+            try:
+                rt.execute('(macros.run "Edit" "Select_Similar")')
+            except Exception:
+                pass
+        cnt = int(rt.selection.count)
+        rt.pushPrompt(f"MaxHotbox 选择相似对象: 已选中 {cnt} 个对象")
+        return cnt
+
+    ctx = _resolve_editable_poly(rt)
+    if ctx is None:
+        return 0
+    node, _cur, sub = ctx
+    seeds = _get_poly_selection(rt, node, sub)
+    if not seeds:
+        rt.pushPrompt("MaxHotbox 选择相似: 请先选中至少一个参考子对象（顶点/边/面）")
+        return 0
+
+    tol = _MEMORY.similar_tolerance if tolerance_pct is None else int(tolerance_pct)
+    m_topo = _MEMORY.similar_match_topo if match_topo is None else bool(match_topo)
+    m_size = _MEMORY.similar_match_size if match_size is None else bool(match_size)
+    _MEMORY.similar_tolerance = tol
+    _MEMORY.similar_match_topo = m_topo
+    _MEMORY.similar_match_size = m_size
+
+    sigs = _collect_poly_similar_signatures(rt, node, sub)
+    chosen = select_similar_by_signature(
+        seeds,
+        sigs,
+        tolerance_percent=float(tol),
+        match_topology=m_topo,
+        match_size=m_size,
+    )
+    _set_poly_selection(rt, node, sub, chosen)
+    rt.pushPrompt(f"MaxHotbox 选择相似 (容差 {tol}%): 已选中 {len(chosen)} 项")
+    return len(chosen)
+
+
+def open_select_similar_panel() -> None:
+    """Open custom PySide6 live-preview Select Similar panel for Vertex/Edge/Polygon."""
+    from PySide6 import QtCore, QtWidgets
+
+    rt = _get_rt()
+    sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
+    if sub == 0:
+        run_select_similar()
+        return
+
+    ctx = _resolve_editable_poly(rt)
+    if ctx is None:
+        return
+    node, _cur, sub = ctx
+    orig_sel = _get_poly_selection(rt, node, sub)
+    if not orig_sel:
+        rt.pushPrompt("MaxHotbox 选择相似: 请先选中至少一个参考子对象")
+        return
+
+    sigs = _collect_poly_similar_signatures(rt, node, sub)
+
+    dlg = QtWidgets.QDialog(_get_max_parent())
+    dlg.setWindowTitle(f"选择相似 (Select Similar · {_subobj_sym(sub)})")
+    dlg.setStyleSheet(_PANEL_QSS)
+    dlg.setFixedWidth(340)
+
+    lay = QtWidgets.QVBoxLayout(dlg)
+    lay.setSpacing(10)
+
+    row_tol = QtWidgets.QHBoxLayout()
+    row_tol.addWidget(QtWidgets.QLabel("尺寸容差:"))
+    slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+    slider.setRange(0, 50)
+    slider.setValue(_MEMORY.similar_tolerance)
+    spin = QtWidgets.QSpinBox()
+    spin.setRange(0, 50)
+    spin.setSuffix(" %")
+    spin.setValue(_MEMORY.similar_tolerance)
+    row_tol.addWidget(slider, 1)
+    row_tol.addWidget(spin)
+    lay.addLayout(row_tol)
+
+    chk_topo = QtWidgets.QCheckBox("匹配拓扑结构（顶点数 / 边数 / 邻接数）")
+    chk_topo.setChecked(_MEMORY.similar_match_topo)
+    chk_size = QtWidgets.QCheckBox("匹配几何尺寸（边长 / 面积）")
+    chk_size.setChecked(_MEMORY.similar_match_size and sub != 1)
+    chk_size.setEnabled(sub != 1)
+    lay.addWidget(chk_topo)
+    lay.addWidget(chk_size)
+
+    status_lbl = QtWidgets.QLabel("")
+    status_lbl.setStyleSheet("color: #8FC0F0;")
+    lay.addWidget(status_lbl)
+
+    accepted = {"ok": False}
+
+    def apply_preview() -> None:
+        tol = spin.value()
+        m_topo = chk_topo.isChecked()
+        m_size = chk_size.isChecked()
+        _MEMORY.similar_tolerance = tol
+        _MEMORY.similar_match_topo = m_topo
+        _MEMORY.similar_match_size = m_size
+        chosen = select_similar_by_signature(
+            orig_sel,
+            sigs,
+            tolerance_percent=float(tol),
+            match_topology=m_topo,
+            match_size=m_size,
+        )
+        _set_poly_selection(rt, node, sub, chosen)
+        status_lbl.setText(f"实时预览: 匹配到 {len(chosen)} / {len(sigs)} 项")
+
+    slider.valueChanged.connect(spin.setValue)
+    spin.valueChanged.connect(slider.setValue)
+    spin.valueChanged.connect(lambda _v: apply_preview())
+    chk_topo.toggled.connect(lambda _c: apply_preview())
+    chk_size.toggled.connect(lambda _c: apply_preview())
+
+    btns = QtWidgets.QHBoxLayout()
+    btns.addStretch()
+    ok_btn = QtWidgets.QPushButton("确定")
+    ok_btn.setObjectName("okBtn")
+    cancel_btn = QtWidgets.QPushButton("取消")
+    btns.addWidget(ok_btn)
+    btns.addWidget(cancel_btn)
+    lay.addLayout(btns)
+
+    ok_btn.clicked.connect(lambda: (accepted.__setitem__("ok", True), dlg.accept()))
+    cancel_btn.clicked.connect(dlg.reject)
+    dlg.finished.connect(
+        lambda _r: _set_poly_selection(rt, node, sub, orig_sel) if not accepted["ok"] else None
+    )
+
+    apply_preview()
+    _show_single_panel(dlg)
+
+
+# ------------------------------------ Smoothing Groups & Auto Smooth (FEAT-002)
+
+
+def open_smoothing_groups_panel() -> None:
+    """Open custom 3ds Max 2026 PySide6 Smoothing Groups (1–32) & Auto Smooth Threshold dialog."""
+    from PySide6 import QtCore, QtWidgets
+
+    rt = _get_rt()
+    ctx = _resolve_poly_any(rt)
+    if ctx is None:
+        return
+    node, cur, sub, is_mod = ctx
+    if sub not in (4, 5):
+        rt.setCommandPanelTaskMode(rt.Name("modify"))
+        rt.subObjectLevel = 4
+
+    try:
+        current_thr = float(getattr(cur, "autoSmoothThreshold", _MEMORY.auto_smooth_angle))
+    except Exception:
+        current_thr = _MEMORY.auto_smooth_angle
+
+    dlg = QtWidgets.QDialog(_get_max_parent())
+    dlg.setWindowTitle("平滑组与自动平滑 (Smoothing Groups & Auto Smooth)")
+    dlg.setStyleSheet(
+        _PANEL_QSS
+        + """
+        QPushButton#sgBtn {
+            min-width: 30px; min-height: 26px; padding: 2px;
+            background-color: #2B2B2B; color: #CCCCCC; border: 1px solid #4E4E4E;
+        }
+        QPushButton#sgBtn:checked {
+            background-color: #3D75B3; color: #FFFFFF; border: 1px solid #70A8E0; font-weight: bold;
+        }
+        """
+    )
+    dlg.setFixedWidth(360)
+
+    lay = QtWidgets.QVBoxLayout(dlg)
+    lay.setSpacing(10)
+
+    # Auto Smooth section
+    row_as = QtWidgets.QHBoxLayout()
+    row_as.addWidget(QtWidgets.QLabel("自动平滑阈值:"))
+    slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+    slider.setRange(0, 180)
+    slider.setValue(int(round(current_thr)))
+    spin = QtWidgets.QDoubleSpinBox()
+    spin.setRange(0.0, 180.0)
+    spin.setDecimals(1)
+    spin.setSuffix(" °")
+    spin.setValue(current_thr)
+    row_as.addWidget(slider, 1)
+    row_as.addWidget(spin)
+    lay.addLayout(row_as)
+
+    slider.valueChanged.connect(lambda v: spin.setValue(float(v)))
+    spin.valueChanged.connect(lambda v: slider.setValue(int(round(v))))
+
+    row_as_btns = QtWidgets.QHBoxLayout()
+    btn_auto = QtWidgets.QPushButton("执行自动平滑 (Auto Smooth)")
+    btn_auto.setObjectName("okBtn")
+    btn_clear = QtWidgets.QPushButton("清除全部平滑组")
+    row_as_btns.addWidget(btn_auto, 1)
+    row_as_btns.addWidget(btn_clear)
+    lay.addLayout(row_as_btns)
+
+    # 8x4 Smoothing Groups Matrix (1..32)
+    lay.addWidget(QtWidgets.QLabel("手动平滑组 (1 - 32，点击切换选中面的平滑组):"))
+    grid = QtWidgets.QGridLayout()
+    grid.setSpacing(3)
+    sg_buttons: dict[int, Any] = {}
+
+    def read_common_mask() -> int:
+        if is_mod:
+            return 0
+        sel_faces = _get_poly_selection(rt, node, 4)
+        if not sel_faces:
+            return 0
+        mask = 0
+        for fid in sel_faces[:500]:
+            mask |= int(rt.polyop.getFaceSmoothGroup(node, fid))
+        return mask
+
+    def refresh_grid() -> None:
+        mask = read_common_mask()
+        for g in range(1, 33):
+            b = sg_buttons[g]
+            b.blockSignals(True)
+            b.setChecked(bool(mask & (1 << (g - 1))))
+            b.blockSignals(False)
+
+    def on_sg_clicked(group_idx: int, checked: bool) -> None:
+        if is_mod:
+            rt.pushPrompt("MaxHotbox 平滑组: 手动 1-32 矩阵仅支持 Editable Poly（Edit Poly 请使用上方自动平滑）")
+            return
+        sel_faces = _get_poly_selection(rt, node, 4)
+        if not sel_faces:
+            rt.pushPrompt("MaxHotbox 平滑组: 请先选中至少一个多边形面")
+            refresh_grid()
+            return
+        for fid in sel_faces:
+            old_m = int(rt.polyop.getFaceSmoothGroup(node, fid))
+            new_m = toggle_smoothing_group_bit(old_m, group_idx, enable=checked)
+            rt.polyop.setFaceSmoothGroup(node, fid, new_m, False)
+        rt.redrawViews()
+
+    for g in range(1, 33):
+        btn = QtWidgets.QPushButton(str(g))
+        btn.setObjectName("sgBtn")
+        btn.setCheckable(True)
+        btn.setEnabled(not is_mod)
+        btn.clicked.connect(lambda checked, idx=g: on_sg_clicked(idx, checked))
+        sg_buttons[g] = btn
+        grid.addWidget(btn, (g - 1) // 8, (g - 1) % 8)
+    lay.addLayout(grid)
+
+    def do_auto_smooth() -> None:
+        angle = float(spin.value())
+        _MEMORY.auto_smooth_angle = angle
+        try:
+            cur.autoSmoothThreshold = angle
+        except Exception:
+            pass
+        try:
+            if not is_mod:
+                cur.ButtonOp(rt.Name("AutoSmooth"))
+            else:
+                cur.ButtonOp(rt.Name("Autosmooth"))
+            rt.redrawViews()
+            rt.pushPrompt(f"MaxHotbox 自动平滑: 已按 {angle:.1f}° 执行")
+        except Exception as exc:
+            rt.pushPrompt(f"MaxHotbox 自动平滑失败: {exc}")
+        refresh_grid()
+
+    def do_clear_sg() -> None:
+        if not is_mod:
+            sel_faces = _get_poly_selection(rt, node, 4)
+            if sel_faces:
+                rt.polyop.setFaceSmoothGroup(node, _to_bitarray(rt, sel_faces), 0, False)
+                rt.redrawViews()
+                rt.pushPrompt("MaxHotbox: 已清除选中面的所有平滑组")
+        else:
+            try:
+                cur.SetOperation(rt.Name("ClearAll"))
+            except Exception:
+                pass
+        refresh_grid()
+
+    btn_auto.clicked.connect(do_auto_smooth)
+    btn_clear.clicked.connect(do_clear_sg)
+
+    footer = QtWidgets.QHBoxLayout()
+    footer.addStretch()
+    close_btn = QtWidgets.QPushButton("关闭")
+    close_btn.clicked.connect(dlg.accept)
+    footer.addWidget(close_btn)
+    lay.addLayout(footer)
+
+    refresh_grid()
     _show_single_panel(dlg)
 
 

@@ -89,7 +89,7 @@ try {
 
     Write-Host ""
     Write-Host "==========================================================" -ForegroundColor Green
-    Write-Host " [OK] MaxHotbox v0.1.2 (3ds Max 2026) 一键安装成功！" -ForegroundColor Green
+    Write-Host " [OK] MaxHotbox v0.1.3 (3ds Max 2026) 一键安装成功！" -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Green
     Write-Host "安装路径 : $TargetBundle"
     Write-Host ""

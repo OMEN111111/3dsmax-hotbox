@@ -61,7 +61,7 @@
             catch ()
 
             messageBox (
-                "MaxHotbox v0.1.2 安装并启动成功！\n\n" +
+                "MaxHotbox v0.1.3 安装并启动成功！\n\n" +
                 "安装目录:\n" + dstBundle + "\n\n" +
                 "当前运行状态: " + statusMsg + "\n\n" +
                 "使用指南（在任意 3D 视口内）:\n" +

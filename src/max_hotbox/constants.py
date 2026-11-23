@@ -4,9 +4,9 @@ from __future__ import annotations
 
 PLUGIN_NAME = "MaxHotbox"
 PLUGIN_DISPLAY_NAME = "MaxHotbox"
-PLUGIN_VERSION = "0.1.2"
+PLUGIN_VERSION = "0.1.3"
 TARGET_MAX_VERSION = 2026
-CONFIG_SCHEMA_VERSION = 4
+CONFIG_SCHEMA_VERSION = 5
 
 # Subclass ID used with comctl32.SetWindowSubclass (unique 32-bit magic id)
 SUBCLASS_ID = 0x4D484258  # 'MHBX'
