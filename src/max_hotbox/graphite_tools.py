@@ -253,18 +253,52 @@ def _get_rt() -> Any:
     return rt
 
 
+def _format_bitarray_literal(indices: list[int]) -> str:
+    """Format 1-based indices into a compact MAXScript BitArray literal like `#{1..5,8,10..12}`."""
+    valid = sorted({int(i) for i in indices if int(i) > 0})
+    if not valid:
+        return "#{}"
+    parts: list[str] = []
+    start = prev = valid[0]
+    for idx in valid[1:]:
+        if idx == prev + 1:
+            prev = idx
+        else:
+            parts.append(f"{start}..{prev}" if prev > start else str(start))
+            start = prev = idx
+    parts.append(f"{start}..{prev}" if prev > start else str(start))
+    return "#{" + ",".join(parts) + "}"
+
+
 def _to_bitarray(rt: Any, indices: list[int]) -> Any:
-    ba = rt.BitArray()
-    for idx in indices:
-        if idx > 0:
-            ba[int(idx)] = True
-    return ba
+    """Build a 1-based MAXScript BitArray safely (avoids pymxs 0-based indexing off-by-one)."""
+    literal = _format_bitarray_literal(indices)
+    if literal == "#{}":
+        return rt.BitArray()
+    return rt.execute(literal)
 
 
 def _from_bitarray(ba: Any) -> list[int]:
+    """Convert a MAXScript BitArray (pymxs yields bools) or integer Array to 1-based indices."""
     if ba is None:
         return []
-    return [int(i) for i in ba]
+    items = list(ba)
+    if not items:
+        return []
+    if isinstance(items[0], bool):
+        return [idx for idx, flag in enumerate(items, start=1) if flag]
+    return [int(i) for i in items if i is not None and int(i) > 0]
+
+
+def _is_dead(rt: Any, node: Any, level: int, idx: int) -> bool:
+    try:
+        if level == 1:
+            return bool(rt.polyop.isVertDead(node, idx))
+        if level in (2, 3):
+            return bool(rt.polyop.isEdgeDead(node, idx))
+        return bool(rt.polyop.isFaceDead(node, idx))
+    except Exception:
+        return False
 
 
 def _resolve_editable_poly(rt: Any) -> tuple[Any, Any, int] | None:
@@ -326,10 +360,10 @@ def _set_poly_selection(rt: Any, node: Any, level: int, indices: list[int]) -> N
 
 def run_random_select(ratio: int | None = None, from_current: bool | None = None) -> int:
     rt = _get_rt()
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return 0
-    node, _cur, sub = ctx
+    node, _cur, sub, is_mod = ctx
     if sub == 0:
         rt.setCommandPanelTaskMode(rt.Name("modify"))
         rt.subObjectLevel = 4
@@ -340,11 +374,21 @@ def run_random_select(ratio: int | None = None, from_current: bool | None = None
     _MEMORY.random_ratio = use_ratio
     _MEMORY.random_from_current = use_curr
 
+    if is_mod:
+        try:
+            rt.PolyToolsSelect.Random(float(use_ratio), 0, 1, use_curr)
+            rt.redrawViews()
+        except Exception as exc:
+            get_logger().warning("PolyToolsSelect.Random failed: %s", exc)
+        chosen_cnt = len(_get_any_poly_selection(rt, node, _cur, sub, True))
+        rt.pushPrompt(f"MaxHotbox 随机选择 ({use_ratio}%): 已选中 {chosen_cnt} 项")
+        return chosen_cnt
+
     if use_curr:
         pool = _get_poly_selection(rt, node, sub)
     else:
         total = _get_poly_sub_count(rt, node, sub)
-        pool = list(range(1, total + 1))
+        pool = [i for i in range(1, total + 1) if not _is_dead(rt, node, sub, i)]
 
     chosen = random_subset_indices(pool, use_ratio)
     _set_poly_selection(rt, node, sub, chosen)
@@ -354,15 +398,34 @@ def run_random_select(ratio: int | None = None, from_current: bool | None = None
 
 def run_select_by_sides(operator: str = ">", target_sides: int = 4) -> int:
     rt = _get_rt()
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return 0
-    node, _cur, _sub = ctx
+    node, cur, _sub, is_mod = ctx
     rt.setCommandPanelTaskMode(rt.Name("modify"))
     rt.subObjectLevel = 4
 
+    if is_mod:
+        # Native PolyToolsSelect.NumericFace <sides> <type: 1=<, 2==, 3=>> <withinSel>
+        type_map = {"<": 1, "=": 2, ">": 3}
+        op_type = type_map.get(operator, 3)
+        try:
+            rt.PolyToolsSelect.NumericFace(int(target_sides), op_type, False)
+            rt.redrawViews()
+        except Exception as exc:
+            get_logger().warning("PolyToolsSelect.NumericFace failed: %s", exc)
+        cnt = len(_get_any_poly_selection(rt, node, cur, 4, True))
+        rt.pushPrompt(f"MaxHotbox 按边数选择 ({operator} {target_sides}): 已选中 {cnt} 个面")
+        return cnt
+
     num_faces = int(rt.polyop.getNumFaces(node))
-    degrees = {fid: int(rt.polyop.getFaceDeg(node, fid)) for fid in range(1, num_faces + 1)}
+    degrees: dict[int, int] = {}
+    for fid in range(1, num_faces + 1):
+        if _is_dead(rt, node, 4, fid):
+            continue
+        deg = rt.polyop.getFaceDeg(node, fid)
+        if deg is not None and int(deg) > 0:
+            degrees[fid] = int(deg)
     chosen = filter_faces_by_sides(degrees, operator, target_sides)
     _set_poly_selection(rt, node, 4, chosen)
     rt.pushPrompt(f"MaxHotbox 按边数选择 ({operator} {target_sides}): 已选中 {len(chosen)} 个面")
@@ -457,10 +520,13 @@ def _set_any_poly_selection(rt: Any, node: Any, cur: Any, level: int, indices: l
     if not is_mod:
         _set_poly_selection(rt, node, level, indices)
         return
-    sym = rt.Name(_subobj_sym(level))
+    sym = _subobj_sym(level)
+    lit = _format_bitarray_literal(indices)
     try:
-        cur.SetSelection(sym, _to_bitarray(rt, indices))
-        rt.redrawViews()
+        rt.execute(
+            f"(local cur = modPanel.getCurrentObject(); "
+            f"if classOf cur == Edit_Poly do (local ba = {lit}; cur.SetSelection #{sym} &ba; redrawViews()))"
+        )
     except Exception:
         pass
 
@@ -517,25 +583,42 @@ def _collect_face_normals(rt: Any, node: Any) -> dict[int, tuple[float, float, f
     num_faces = int(rt.polyop.getNumFaces(node))
     normals: dict[int, tuple[float, float, float]] = {}
     for fid in range(1, num_faces + 1):
+        if _is_dead(rt, node, 4, fid):
+            continue
         n = rt.polyop.getFaceNormal(node, fid)
-        normals[fid] = (float(n.x), float(n.y), float(n.z))
+        if n is not None:
+            normals[fid] = (float(n.x), float(n.y), float(n.z))
     return normals
 
 
 def run_select_hard_edges(angle_deg: float | None = None) -> int:
     rt = _get_rt()
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return 0
-    node, _cur, _sub = ctx
+    node, cur, _sub, is_mod = ctx
     rt.setCommandPanelTaskMode(rt.Name("modify"))
     rt.subObjectLevel = 2
+
+    if is_mod:
+        try:
+            rt.PolyToolsSelect.HardEdges()
+            rt.redrawViews()
+        except Exception as exc:
+            get_logger().warning("PolyToolsSelect.HardEdges failed: %s", exc)
+        cnt = len(_get_any_poly_selection(rt, node, cur, 2, True))
+        rt.pushPrompt(f"MaxHotbox 硬边选择: 已选中 {cnt} 条边")
+        return cnt
 
     thr = _MEMORY.hard_edge_angle if angle_deg is None else float(angle_deg)
     _MEMORY.hard_edge_angle = thr
     normals = _collect_face_normals(rt, node)
     num_edges = int(rt.polyop.getNumEdges(node))
-    edge_faces = {eid: _from_bitarray(rt.polyop.getEdgeFaces(node, eid)) for eid in range(1, num_edges + 1)}
+    edge_faces: dict[int, list[int]] = {}
+    for eid in range(1, num_edges + 1):
+        if _is_dead(rt, node, 2, eid):
+            continue
+        edge_faces[eid] = _from_bitarray(rt.polyop.getEdgeFaces(node, eid))
     chosen = select_hard_edges_from_normals(edge_faces, normals, angle_threshold_deg=thr)
     _set_poly_selection(rt, node, 2, chosen)
     rt.pushPrompt(f"MaxHotbox 硬边选择 (≥ {thr:.0f}°): 已选中 {len(chosen)} 条边")
@@ -671,7 +754,7 @@ def open_random_select_panel() -> None:
 
     orig_sel = _get_poly_selection(rt, node, sub)
     total = _get_poly_sub_count(rt, node, sub)
-    all_pool = list(range(1, total + 1))
+    all_pool = [i for i in range(1, total + 1) if not _is_dead(rt, node, sub, i)]
 
     dlg = QtWidgets.QDialog(_get_max_parent())
     dlg.setWindowTitle(f"随机选择 (Random Select · {_subobj_sym(sub)})")
@@ -763,7 +846,13 @@ def open_select_by_sides_panel() -> None:
 
     orig_sel = _get_poly_selection(rt, node, 4)
     num_faces = int(rt.polyop.getNumFaces(node))
-    degrees = {fid: int(rt.polyop.getFaceDeg(node, fid)) for fid in range(1, num_faces + 1)}
+    degrees: dict[int, int] = {}
+    for fid in range(1, num_faces + 1):
+        if _is_dead(rt, node, 4, fid):
+            continue
+        deg = rt.polyop.getFaceDeg(node, fid)
+        if deg is not None and int(deg) > 0:
+            degrees[fid] = int(deg)
 
     dlg = QtWidgets.QDialog(_get_max_parent())
     dlg.setWindowTitle("按边数选择面 (Select by Sides)")
@@ -1031,34 +1120,43 @@ def open_spline_divide_panel() -> None:
 
 
 def _collect_poly_similar_signatures(rt: Any, node: Any, sub: int) -> dict[int, tuple[int, float]]:
-    """Build (topology_count, geometric_size) signatures for Vertex/Edge/Polygon."""
+    """Build (topology_count, geometric_size) signatures for Vertex/Edge/Polygon, skipping dead elements."""
     sigs: dict[int, tuple[int, float]] = {}
     if sub == 1:
         num_v = int(rt.polyop.getNumVerts(node))
         for vid in range(1, num_v + 1):
+            if _is_dead(rt, node, 1, vid):
+                continue
             edges = _from_bitarray(rt.polyop.getEdgesUsingVert(node, vid))
             sigs[vid] = (len(edges), 0.0)
     elif sub in (2, 3):
         num_e = int(rt.polyop.getNumEdges(node))
         for eid in range(1, num_e + 1):
+            if _is_dead(rt, node, 2, eid):
+                continue
             verts = _from_bitarray(rt.polyop.getEdgeVerts(node, eid))
             faces = _from_bitarray(rt.polyop.getEdgeFaces(node, eid))
             length = 0.0
             if len(verts) == 2:
                 p1 = rt.polyop.getVert(node, verts[0])
                 p2 = rt.polyop.getVert(node, verts[1])
-                length = math.sqrt(
-                    (float(p2.x) - float(p1.x)) ** 2
-                    + (float(p2.y) - float(p1.y)) ** 2
-                    + (float(p2.z) - float(p1.z)) ** 2
-                )
+                if p1 is not None and p2 is not None:
+                    length = math.sqrt(
+                        (float(p2.x) - float(p1.x)) ** 2
+                        + (float(p2.y) - float(p1.y)) ** 2
+                        + (float(p2.z) - float(p1.z)) ** 2
+                    )
             sigs[eid] = (len(faces), length)
     else:
         num_f = int(rt.polyop.getNumFaces(node))
         for fid in range(1, num_f + 1):
-            deg = int(rt.polyop.getFaceDeg(node, fid))
-            area = float(rt.polyop.getFaceArea(node, fid))
-            sigs[fid] = (deg, area)
+            if _is_dead(rt, node, 4, fid):
+                continue
+            deg = rt.polyop.getFaceDeg(node, fid)
+            if deg is None or int(deg) <= 0:
+                continue
+            area = rt.polyop.getFaceArea(node, fid)
+            sigs[fid] = (int(deg), float(area) if area is not None else 0.0)
     return sigs
 
 
@@ -1067,7 +1165,7 @@ def run_select_similar(
     match_topo: bool | None = None,
     match_size: bool | None = None,
 ) -> int:
-    """Graphite-style Select Similar working across Object, Vertex, Edge, and Polygon levels."""
+    """Graphite-style Select Similar working across Object, Vertex, Edge, and Polygon (Editable_Poly & Edit_Poly)."""
     rt = _get_rt()
     try:
         if int(rt.selection.count) == 0:
@@ -1078,7 +1176,6 @@ def run_select_similar(
 
     sub = int(rt.subObjectLevel) if rt.subObjectLevel is not None else 0
     if sub == 0:
-        # Object-level Select Similar via native 3ds Max command
         try:
             rt.execute('(actionMan.executeAction 0 "40099")')
         except Exception:
@@ -1090,11 +1187,11 @@ def run_select_similar(
         rt.pushPrompt(f"MaxHotbox 选择相似对象: 已选中 {cnt} 个对象")
         return cnt
 
-    ctx = _resolve_editable_poly(rt)
+    ctx = _resolve_poly_any(rt)
     if ctx is None:
         return 0
-    node, _cur, sub = ctx
-    seeds = _get_poly_selection(rt, node, sub)
+    node, cur, sub, is_mod = ctx
+    seeds = _get_any_poly_selection(rt, node, cur, sub, is_mod)
     if not seeds:
         rt.pushPrompt("MaxHotbox 选择相似: 请先选中至少一个参考子对象（顶点/边/面）")
         return 0
@@ -1105,6 +1202,17 @@ def run_select_similar(
     _MEMORY.similar_tolerance = tol
     _MEMORY.similar_match_topo = m_topo
     _MEMORY.similar_match_size = m_size
+
+    if is_mod:
+        # Use native Graphite PolyToolsSelect.Similar on Edit_Poly modifiers
+        try:
+            rt.PolyToolsSelect.Similar(m_topo, m_size, m_topo, m_size, m_topo, False)
+            rt.redrawViews()
+        except Exception as exc:
+            get_logger().warning("PolyToolsSelect.Similar failed on Edit_Poly: %s", exc)
+        cnt = len(_get_any_poly_selection(rt, node, cur, sub, True))
+        rt.pushPrompt(f"MaxHotbox 选择相似 (Edit Poly): 已选中 {cnt} 项")
+        return cnt
 
     sigs = _collect_poly_similar_signatures(rt, node, sub)
     chosen = select_similar_by_signature(
@@ -1297,7 +1405,9 @@ def open_smoothing_groups_panel() -> None:
             return 0
         mask = 0
         for fid in sel_faces[:500]:
-            mask |= int(rt.polyop.getFaceSmoothGroup(node, fid))
+            sg = rt.polyop.getFaceSmoothGroup(node, fid)
+            if sg is not None:
+                mask |= int(sg)
         return mask
 
     def refresh_grid() -> None:
@@ -1353,14 +1463,22 @@ def open_smoothing_groups_panel() -> None:
 
     def do_clear_sg() -> None:
         if not is_mod:
-            sel_faces = _get_poly_selection(rt, node, 4)
-            if sel_faces:
-                rt.polyop.setFaceSmoothGroup(node, _to_bitarray(rt, sel_faces), 0, False)
+            try:
+                cur.ButtonOp(rt.Name("ClearSmoothingGroups"))
                 rt.redrawViews()
                 rt.pushPrompt("MaxHotbox: 已清除选中面的所有平滑组")
+            except Exception:
+                sel_faces = _get_poly_selection(rt, node, 4)
+                if sel_faces:
+                    rt.polyop.setFaceSmoothGroup(node, _to_bitarray(rt, sel_faces), 0, False)
+                    rt.redrawViews()
         else:
             try:
-                cur.SetOperation(rt.Name("ClearAll"))
+                rt.execute(
+                    "(local c = modPanel.getCurrentObject(); "
+                    "if classOf c == Edit_Poly do (c.SetOperation #SetSmooth; c.smoothingGroupsToSet = 0; c.smoothingGroupsToClear = -1; c.Commit(); redrawViews()))"
+                )
+                rt.pushPrompt("MaxHotbox: 已清除选中面的所有平滑组 (Edit Poly)")
             except Exception:
                 pass
         refresh_grid()
@@ -1401,7 +1519,11 @@ def open_angle_select_panel(mode: str = "hard_edges") -> None:
 
     normals = _collect_face_normals(rt, node)
     num_edges = int(rt.polyop.getNumEdges(node))
-    edge_faces = {eid: _from_bitarray(rt.polyop.getEdgeFaces(node, eid)) for eid in range(1, num_edges + 1)}
+    edge_faces: dict[int, list[int]] = {}
+    for eid in range(1, num_edges + 1):
+        if _is_dead(rt, node, 2, eid):
+            continue
+        edge_faces[eid] = _from_bitarray(rt.polyop.getEdgeFaces(node, eid))
     face_adj: dict[int, set[int]] = {}
     if not is_edges:
         for faces in edge_faces.values():

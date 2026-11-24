@@ -552,8 +552,13 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (CrossSection()) ui:on)))"
     ),
     "mod_fillet_chamfer": (
-        '(undo "MaxHotbox: Fillet/Chamfer" on ('
-        "if selection.count > 0 do (setCommandPanelTaskMode #modify; modPanel.addModToSelection (Fillet_Chamfer()) ui:on)))"
+        '(undo "MaxHotbox: Spline Chamfer" on ('
+        "if selection.count > 0 do ("
+        "subObjectLevel = 0; setCommandPanelTaskMode #modify;"
+        "local m = undefined;"
+        "try (m = Spline_Chamfer()) catch ();"
+        "if m == undefined do try (m = Fillet_Chamfer()) catch ();"
+        "if m != undefined do (try (modPanel.addModToSelection m ui:on) catch (for o in selection do addModifier o (copy m))))))"
     ),
     "mod_spline_relax": (
         '(undo "MaxHotbox: Spline Relax" on ('
@@ -582,10 +587,13 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
         '(undo "MaxHotbox: Flow Connect" on (try (macros.run "PolyTools" "FlowConnect") catch (try (PolyToolsModeling.FlowConnect()) catch ())))'
     ),
     "graphite_set_flow": (
-        '(undo "MaxHotbox: Set Flow" on (try (PolyToolsModeling.SetFlow false) catch (try (macros.run "PolyTools" "SetFlow") catch ())))'
+        '(undo "MaxHotbox: Set Flow" on ('
+        "try (if subObjectLevel == 1 then PolyToolsModeling.SetFlowVertex() else PolyToolsModeling.SetFlow false) "
+        'catch (try (macros.run "PolyTools" "SetFlow") catch ())))'
     ),
     "graphite_space_loop": (
-        '(undo "MaxHotbox: Space Loop" on (try (macros.run "PolyTools" "SpaceLoop") catch ()))'
+        '(undo "MaxHotbox: Space Loop" on ('
+        'try (PolyToolsModeling.SpaceLoop false) catch (try (macros.run "PolyTools" "SpaceLoop") catch ())))'
     ),
     "graphite_geopoly": (
         '(undo "MaxHotbox: GeoPoly" on (try (macros.run "PolyTools" "GeoPoly") catch (try (PolyToolsModeling.GeoPoly()) catch ())))'
@@ -629,7 +637,7 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_outline": (
         "(local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "try (cur.ToggleCommandMode #Outline) catch (cur.PopupDialog #Outline)))"
+        "try (cur.ToggleCommandMode #OutlineFace) catch (cur.PopupDialog #Outline)))"
     ),
     "poly_chamfer": (
         "(local cur = modPanel.getCurrentObject();"
@@ -646,23 +654,22 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_bridge": (
         '(undo "MaxHotbox: Bridge" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "local modeSym = case subObjectLevel of (2: #BridgeEdge; 3: #BridgeBorder; default: #BridgePolygon);"
-        "local ok = false;"
-        "try (ok = (cur.ButtonOp modeSym); if ok == undefined do ok = true) catch (ok = false);"
-        "if not ok do try (cur.ToggleCommandMode modeSym) catch ())))"
+        "local sym = if subObjectLevel == 2 then #BridgeEdge else if subObjectLevel == 3 then #BridgeBorder else #BridgePolygon;"
+        "if classOf cur == Editable_Poly do ("
+        "local bridged = false;"
+        "try (bridged = cur.Bridge()) catch (bridged = false);"
+        "if bridged != true do (cur.ButtonOp sym));"
+        "if classOf cur == Edit_Poly do (cur.ButtonOp sym; cur.Commit())))"
     ),
     "poly_weld": (
         "(local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "local modeSym = if subObjectLevel == 2 then #TargetWeldEdge else #TargetWeldVertex;"
-        "try (cur.ToggleCommandMode modeSym) catch (try (cur.PopupDialog #Weld) catch (cur.PopupDialog #WeldVertex))))"
+        "cur.ToggleCommandMode #Weld))"
     ),
     "poly_target_weld": (
         "(local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "local modeSym = if subObjectLevel == 2 then #TargetWeldEdge else #TargetWeldVertex;"
-        "cur.ToggleCommandMode modeSym))"
+        "cur.ToggleCommandMode #Weld))"
     ),
     "poly_relax": (
         '(undo "MaxHotbox: Relax" on ('
@@ -671,21 +678,23 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "poly_detach": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #Detach "
-        "else if classOf cur == Edit_Poly then cur.PopupDialog #DetachFace)"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #Detach) "
+        "else if classOf cur == Edit_Poly do ("
+        "if subObjectLevel == 1 then cur.PopupDialog #DetachVertex else cur.PopupDialog #DetachFace))"
     ),
     "poly_create_shape": (
         '(undo "MaxHotbox: Create Shape" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "try (cur.ButtonOp #CreateShape) catch (cur.PopupDialog #CreateShape))))"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #CreateShape) "
+        "else if classOf cur == Edit_Poly do (cur.PopupDialog #CreateShape)))"
     ),
     # ---------------------- Poly Numeric Settings Panel (Option Box □)
     "poly_extrude_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.PopupDialog #Extrude "
-        "else if classOf cur == Edit_Poly then ("
-        "case subObjectLevel of (1: cur.PopupDialog #ExtrudeVertex; 2: cur.PopupDialog #ExtrudeEdge; 3: cur.PopupDialog #ExtrudeEdge; default: cur.PopupDialog #ExtrudeFace)))"
+        "if classOf cur == Editable_Poly do (cur.PopupDialog #Extrude);"
+        "if classOf cur == Edit_Poly do ("
+        "local sym = if subObjectLevel == 1 then #ExtrudeVertex else if (subObjectLevel == 2 or subObjectLevel == 3) then #ExtrudeEdge else #ExtrudeFace;"
+        "cur.PopupDialog sym))"
     ),
     "poly_inset_settings": (
         "(local cur = modPanel.getCurrentObject();"
@@ -701,8 +710,8 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "poly_chamfer_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.PopupDialog #Chamfer "
-        "else if classOf cur == Edit_Poly then ("
+        "if classOf cur == Editable_Poly then (cur.PopupDialog #Chamfer) "
+        "else if classOf cur == Edit_Poly do ("
         "if subObjectLevel == 1 then cur.PopupDialog #ChamferVertex else cur.PopupDialog #ChamferEdge))"
     ),
     "poly_connect_settings": (
@@ -713,15 +722,13 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_bridge_settings": (
         "(local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do ("
-        "local modeSym = case subObjectLevel of (2: #BridgeEdge; 3: #BridgeBorder; default: #BridgePolygon);"
-        "local ok = false;"
-        "try (ok = (cur.PopupDialog modeSym); if ok == undefined do ok = true) catch (ok = false);"
-        "if not ok do try (cur.PopupDialog #Bridge) catch ()))"
+        "local sym = if subObjectLevel == 2 then #BridgeEdge else if subObjectLevel == 3 then #BridgeBorder else #BridgePolygon;"
+        "cur.PopupDialog sym))"
     ),
     "poly_weld_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.PopupDialog #Weld "
-        "else if classOf cur == Edit_Poly then ("
+        "if classOf cur == Editable_Poly then (cur.PopupDialog #WeldSelected) "
+        "else if classOf cur == Edit_Poly do ("
         "if subObjectLevel == 2 then cur.PopupDialog #WeldEdge else cur.PopupDialog #WeldVertex))"
     ),
     "poly_relax_settings": (
@@ -730,12 +737,14 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "poly_detach_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #Detach "
-        "else if classOf cur == Edit_Poly then cur.PopupDialog #DetachFace)"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #Detach) "
+        "else if classOf cur == Edit_Poly do ("
+        "if subObjectLevel == 1 then cur.PopupDialog #DetachVertex else cur.PopupDialog #DetachFace))"
     ),
     "poly_create_shape_settings": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.PopupDialog #CreateShape)"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #CreateShape) "
+        "else if classOf cur == Edit_Poly do (cur.PopupDialog #CreateShape))"
     ),
     # ---------------------------------------- Direct Poly Tools & Cut/Planar
     "poly_break": (
@@ -746,28 +755,28 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_remove": (
         '(undo "MaxHotbox: Remove" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #Remove "
-        "else if classOf cur == Edit_Poly then ("
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #Remove) "
+        "else if classOf cur == Edit_Poly do ("
         "if subObjectLevel == 1 then cur.ButtonOp #RemoveVertex else cur.ButtonOp #RemoveEdge)))"
     ),
     "poly_clean_remove": (
         '(undo "MaxHotbox: Clean Remove Edge" on ('
         "local cur = modPanel.getCurrentObject();"
         "if classOf cur == Editable_Poly then (cur.ButtonOp #Remove; cur.ButtonOp #RemoveIsoVerts) "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #RemoveEdgeRemoveVertices))"
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #RemoveEdgeRemoveVertices)))"
     ),
     "poly_split": (
         '(undo "MaxHotbox: Split Edges" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #SplitEdges "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #SplitEdges))"
+        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.ButtonOp #SplitEdges))"
     ),
     "poly_collapse": (
         '(undo "MaxHotbox: Collapse" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #Collapse "
-        "else if classOf cur == Edit_Poly then ("
-        "case subObjectLevel of (1: cur.ButtonOp #CollapseVertex; 2: cur.ButtonOp #CollapseEdge; default: cur.ButtonOp #CollapseFace))))"
+        "if classOf cur == Editable_Poly do (cur.ButtonOp #Collapse);"
+        "if classOf cur == Edit_Poly do ("
+        "local sym = if subObjectLevel == 1 then #CollapseVertex else if subObjectLevel == 2 then #CollapseEdge else #CollapseFace;"
+        "cur.ButtonOp sym)))"
     ),
     "poly_cap": (
         '(undo "MaxHotbox: Cap" on ('
@@ -777,15 +786,20 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_flip": (
         '(undo "MaxHotbox: Flip Normals" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.ButtonOp #FlipNormals))"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #FlipNormals) "
+        "else if classOf cur == Edit_Poly do ("
+        "if subObjectLevel == 5 then cur.ButtonOp #FlipElement else cur.ButtonOp #FlipFace)))"
     ),
     "poly_attach": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.ToggleCommandMode #Attach)"
+        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.enterPickMode #Attach)"
     ),
     "poly_cut": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly or classOf cur == Edit_Poly do cur.ToggleCommandMode #Cut)"
+        "if classOf cur == Editable_Poly do ("
+        "if subObjectLevel == 0 then cur.ButtonOp #Cut "
+        "else (local cutSym = if subObjectLevel == 1 then #CutVertex else if (subObjectLevel == 2 or subObjectLevel == 3) then #CutEdge else #CutFace; cur.ToggleCommandMode cutSym));"
+        "if classOf cur == Edit_Poly do (cur.ToggleCommandMode #Cut))"
     ),
     "poly_quickslice": (
         "(local cur = modPanel.getCurrentObject();"
@@ -803,31 +817,32 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "poly_planar_x": (
         '(undo "MaxHotbox: Make Planar X" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.MakePlanarIn #X "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #MakePlanarInX))"
+        "if classOf cur == Editable_Poly then (cur.MakePlanarIn #X) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #MakePlanarInX)))"
     ),
     "poly_planar_y": (
         '(undo "MaxHotbox: Make Planar Y" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.MakePlanarIn #Y "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #MakePlanarInY))"
+        "if classOf cur == Editable_Poly then (cur.MakePlanarIn #Y) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #MakePlanarInY)))"
     ),
     "poly_planar_z": (
         '(undo "MaxHotbox: Make Planar Z" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.MakePlanarIn #Z "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #MakePlanarInZ))"
+        "if classOf cur == Editable_Poly then (cur.MakePlanarIn #Z) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #MakePlanarInZ)))"
     ),
     "poly_autosmooth": (
         '(undo "MaxHotbox: Auto Smooth" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ButtonOp #AutoSmooth "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #Autosmooth))"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #AutoSmooth) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #Autosmooth)))"
     ),
     "poly_clear_sg": (
         '(undo "MaxHotbox: Clear Smoothing Groups" on ('
         "local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then (cur.SetSelection #Face (cur.GetSelection #Face); polyop.setFaceSmoothGroup $ (cur.GetSelection #Face) 0)))"
+        "if classOf cur == Editable_Poly then (cur.ButtonOp #ClearSmoothingGroups) "
+        "else if classOf cur == Edit_Poly do (cur.SetOperation #SetSmooth; cur.smoothingGroupsToSet = 0; cur.smoothingGroupsToClear = -1; cur.Commit())))"
     ),
     "poly_soft_selection": (
         "(local cur = modPanel.getCurrentObject();"
@@ -835,23 +850,23 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "poly_loop": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.SelectEdgeLoop() "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #SelectEdgeLoop)"
+        "if classOf cur == Editable_Poly then (cur.SelectEdgeLoop()) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #SelectEdgeLoop))"
     ),
     "poly_ring": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.SelectEdgeRing() "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #SelectEdgeRing)"
+        "if classOf cur == Editable_Poly then (cur.SelectEdgeRing()) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #SelectEdgeRing))"
     ),
     "poly_grow": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.GrowSelection() "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #GrowSelection)"
+        "if classOf cur == Editable_Poly then (cur.GrowSelection()) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #GrowSelection))"
     ),
     "poly_shrink": (
         "(local cur = modPanel.getCurrentObject();"
-        "if classOf cur == Editable_Poly then cur.ShrinkSelection() "
-        "else if classOf cur == Edit_Poly then cur.ButtonOp #ShrinkSelection)"
+        "if classOf cur == Editable_Poly then (cur.ShrinkSelection()) "
+        "else if classOf cur == Edit_Poly do (cur.ButtonOp #ShrinkSelection))"
     ),
     "poly_border_to_edge": (
         "(local cur = modPanel.getCurrentObject();"
@@ -942,31 +957,35 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "spline_knot_corner": (
         '(undo "MaxHotbox: Knot Corner" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #corner);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40018\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换顶点类型\")))))"
     ),
     "spline_knot_smooth": (
         '(undo "MaxHotbox: Knot Smooth" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #smooth);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40019\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换顶点类型\")))))"
     ),
     "spline_knot_bezier": (
         '(undo "MaxHotbox: Knot Bezier" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #bezier);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40020\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换顶点类型\")))))"
     ),
     "spline_knot_bezier_corner": (
         '(undo "MaxHotbox: Knot Bezier Corner" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for k in (getKnotSelection sh s) do setKnotType sh s k #bezierCorner);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40021\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换顶点类型\")))))"
     ),
     "spline_divide": (
         '(undo "MaxHotbox: Spline Divide" on (max modify mode; local cur = modPanel.getCurrentObject();'
@@ -985,17 +1004,19 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     ),
     "spline_seg_line": (
         '(undo "MaxHotbox: Segment to Line" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for sg in (getSegSelection sh s) do setSegmentType sh s sg #line);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40022\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换线段类型\")))))"
     ),
     "spline_seg_curve": (
         '(undo "MaxHotbox: Segment to Curve" on ('
-        "if selection.count > 0 do (local sh = selection[1];"
-        "if (classOf sh == SplineShape or classOf sh == line) do ("
+        "if selection.count > 0 do (local sh = selection[1]; local cur = modPanel.getCurrentObject();"
+        "if (classOf cur != Edit_Spline and (classOf sh.baseObject == SplineShape or classOf sh.baseObject == line)) then ("
         "for s = 1 to (numSplines sh) do (for sg in (getSegSelection sh s) do setSegmentType sh s sg #curve);"
-        "updateShape sh))))"
+        "updateShape sh) "
+        "else (try (actionMan.executeAction 369982487 \"40023\") catch (pushPrompt \"MaxHotbox: Edit Spline 修改器请先塌陷或转为可编辑样条线后再切换线段类型\")))))"
     ),
     "spline_outline": (
         "(max modify mode; local cur = modPanel.getCurrentObject();"
@@ -1103,7 +1124,11 @@ _BUILTIN_MAXSCRIPTS: dict[str, str] = {
     "zoom_extents_sel": "(max zoomext sel)",
     "zoom_extents_all": "(max zoomext sel all)",
     "toggle_wireframe": "(max wire smooth)",
-    "toggle_edged_faces": "(max edged faces)",
+    "toggle_edged_faces": (
+        "(try (local vs = NitrousGraphicsManager.GetActiveViewportSetting(); "
+        "vs.ShowEdgedFacesEnabled = not vs.ShowEdgedFacesEnabled; redrawViews()) "
+        'catch (actionMan.executeAction 0 "369"))'
+    ),
     "shading_default": "(try (NitrousGraphicsManager.GetActiveViewportSetting()).VisualStyleMode = #Realistic catch (actionMan.executeAction 0 \"63566\"))",
     "shading_clay": "(try (NitrousGraphicsManager.GetActiveViewportSetting()).VisualStyleMode = #Clay catch ())",
     "shading_facets": "(try (NitrousGraphicsManager.GetActiveViewportSetting()).VisualStyleMode = #Facets catch ())",

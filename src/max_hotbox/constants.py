@@ -4,7 +4,7 @@ from __future__ import annotations
 
 PLUGIN_NAME = "MaxHotbox"
 PLUGIN_DISPLAY_NAME = "MaxHotbox"
-PLUGIN_VERSION = "0.1.3"
+PLUGIN_VERSION = "0.1.4"
 TARGET_MAX_VERSION = 2026
 CONFIG_SCHEMA_VERSION = 5
 

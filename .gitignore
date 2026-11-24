@@ -1,7 +1,9 @@
-# Local experiments, logs, tests, and build artifacts (not published to Git)
+# Local experiments, logs, tests, agent memory, and build artifacts (not published to Git)
 .text/
 tests/
 dist/
+AGENTS.md
+.agents/
 
 # Python
 __pycache__/

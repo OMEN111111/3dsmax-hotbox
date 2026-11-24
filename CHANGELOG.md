@@ -2,6 +2,16 @@
 
 All notable changes to **MaxHotbox** will be documented in this file.
 
+## [0.1.4] - 2026-11-24 (Beta Update)
+
+### Fixed
+- **Full 3ds Max 2026.3 Live Command Audit (~237 Commands Verified)**:
+  - **Bridge & Settings (`poly_bridge` / `poly_bridge_settings`)**: Switched `Editable_Poly` direct Bridge to `cur.Bridge()` and `Edit_Poly` to `ButtonOp + Commit()`, removing `not OK` runtime crashes and single-line `case` MAXScript syntax errors.
+  - **MAXScript Syntax Fixes (`poly_collapse`, `poly_extrude_settings`)**: Replaced unsafe single-line `case` calls and dangling `else if ... then` branches without `else`.
+  - **Valid `Editable_Poly` & `Edit_Poly` Symbols**: Fixed `poly_weld` / `poly_target_weld` (`#Weld`), `poly_weld_settings` (`#WeldSelected`), `poly_attach` (`enterPickMode #Attach`), `poly_cut` (`#CutVertex/#CutEdge/#CutFace` & `#Cut`), `poly_outline` (`#OutlineFace`), `poly_flip` (`#FlipFace/#FlipElement` on `Edit_Poly`), and `poly_clear_sg` (`#ClearSmoothingGroups` & `#SetSmooth`).
+  - **Graphite `pymxs` `BitArray` & Dead Sub-Object Safety (`graphite_tools.py`)**: Fixed 0-based `+1` off-by-one corruption in `_to_bitarray` (now 1-based `rt.execute("#{...}")`), fixed `bool`-iterator decoding in `_from_bitarray`, added `_is_dead` guards for deleted vertices/edges/faces across all Graphite selection tools, and added native `PolyToolsSelect` fallback for `Edit_Poly` modifiers.
+  - **Viewport, Spline & Modifier Compatibility**: Fixed `toggle_edged_faces` using Nitrous `(NitrousGraphicsManager.GetActiveViewportSetting()).ShowEdgedFacesEnabled`, replaced non-creatable `Fillet_Chamfer` with `Spline_Chamfer` in `mod_fillet_chamfer`, and guarded `Edit_Spline` knot/segment type operations on parametric base shapes.
+
 ## [0.1.3] - 2026-11-23 (Beta Update)
 
 ### Fixed
