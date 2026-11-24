@@ -17,9 +17,10 @@ from .constants import (
     HOTBOX_ZONES,
     PLUGIN_DISPLAY_NAME,
     PLUGIN_VERSION,
-    TARGET_MAX_VERSION,
+    SUPPORTED_MAX_VERSIONS,
     THEMES,
 )
+from .logger import get_running_max_year
 
 # Native Autodesk 3ds Max 2026 Dark Neutral QSS
 _DIALOG_QSS = """
@@ -136,8 +137,14 @@ class HotboxSettingsDialog(QtWidgets.QDialog):
         self._on_rescan_viewports = on_rescan_viewports
         self._draft: HotboxConfig = config_manager.clone_config()
 
+        running_year = get_running_max_year()
+        max_label = (
+            f"3ds Max {running_year}"
+            if running_year is not None
+            else f"3ds Max {'/'.join(str(y) for y in SUPPORTED_MAX_VERSIONS)}"
+        )
         self.setWindowTitle(
-            f"{PLUGIN_DISPLAY_NAME} v{PLUGIN_VERSION} — 配置与菜单编辑器 (3ds Max {TARGET_MAX_VERSION})"
+            f"{PLUGIN_DISPLAY_NAME} v{PLUGIN_VERSION} — 配置与菜单编辑器 ({max_label})"
         )
         self.resize(960, 650)
         self.setStyleSheet(_DIALOG_QSS)

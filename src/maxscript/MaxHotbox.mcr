@@ -1,5 +1,5 @@
 ﻿/*
- * MaxHotbox MacroScripts for Autodesk 3ds Max 2026
+ * MaxHotbox MacroScripts for Autodesk 3ds Max 2026 / 2027
  * Category: MaxHotbox
  */
 

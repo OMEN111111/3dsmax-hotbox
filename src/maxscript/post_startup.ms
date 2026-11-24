@@ -1,7 +1,7 @@
 ﻿/*
- * MaxHotbox Post-Startup Bootstrap for Autodesk 3ds Max 2026
+ * MaxHotbox Post-Startup Bootstrap for Autodesk 3ds Max 2026 / 2027
  * 1. Registers bundle's Contents/python into sys.path
- * 2. Registers native 3ds Max 2026 main menu bar items via #cuiRegisterMenus
+ * 2. Registers native 3ds Max main menu bar items via #cuiRegisterMenus
  * 3. Starts the MaxHotbox Python controller
  */
 
@@ -51,9 +51,13 @@ fn gMaxHotboxRegisterMenusFn =
         normalizedPyDir = substituteString pythonDir "\\" "/"
     )
 
-    -- Register Max 2026 menu callback
+    -- Register 3ds Max menu callback
     callbacks.removeScripts id:#MaxHotboxMenuCallback
     callbacks.addScript #cuiRegisterMenus gMaxHotboxRegisterMenusFn id:#MaxHotboxMenuCallback
+
+    -- Detect running 3ds Max product year (e.g. 2026, 2027) for versioned bundle lookup
+    local mv = maxVersion()
+    local maxYear = if mv.count >= 8 then (mv[8] as string) else ((1998 + (mv[1] / 1000)) as string)
 
     -- Inject bundle python path (with fallback to ApplicationPlugins), hot-reload if already loaded, and start controller
     local pyBoot = ""
@@ -71,6 +75,7 @@ fn gMaxHotboxRegisterMenusFn =
     pyBoot += "for env_name in ('APPDATA', 'ProgramData'):\n"
     pyBoot += "    base = os.environ.get(env_name)\n"
     pyBoot += "    if base:\n"
+    pyBoot += "        candidates.append(os.path.join(base, 'Autodesk', 'ApplicationPlugins', 'MaxHotbox_" + maxYear + ".bundle', 'Contents', 'python'))\n"
     pyBoot += "        candidates.append(os.path.join(base, 'Autodesk', 'ApplicationPlugins', 'MaxHotbox.bundle', 'Contents', 'python'))\n"
     pyBoot += "for p in candidates:\n"
     pyBoot += "    if os.path.isdir(os.path.join(p, 'max_hotbox')):\n"

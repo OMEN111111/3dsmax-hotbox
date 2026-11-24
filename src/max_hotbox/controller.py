@@ -20,7 +20,7 @@ from .constants import (
 from .context import MaxContext, query_max_context
 from .geometry import Point2D
 from . import graphite_tools
-from .logger import get_logger
+from .logger import get_logger, get_running_max_year
 from .state_machine import FullHotboxSessionState, HotboxStateMachine, RadialSessionState
 from .ui_hotbox import FullHotboxOverlay
 from .ui_overlay import RadialMenuOverlay
@@ -153,10 +153,12 @@ class MaxHotboxController(QtCore.QObject):
         if app is not None:
             app.aboutToQuit.connect(self.stop)
 
+        max_year = get_running_max_year()
         self._logger.info(
-            "%s v%s started (enabled=%s, hooked_viewports=%d)",
+            "%s v%s started (max=%s, enabled=%s, hooked_viewports=%d)",
             PLUGIN_NAME,
             PLUGIN_VERSION,
+            max_year or "unknown",
             self._config.settings.enabled,
             len(self._hooks.hooked_hwnds),
         )
@@ -226,7 +228,7 @@ class MaxHotboxController(QtCore.QObject):
             action.triggered.connect(self.open_settings)
             menu_bar.addAction(action)
             self._menubar_action = action
-            self._logger.info("Installed direct menuBar button on 3ds Max 2026")
+            self._logger.info("Installed direct menuBar button on 3ds Max %s", get_running_max_year() or "")
         except Exception as exc:
             self._logger.warning("Could not install menuBar button: %s", exc)
 

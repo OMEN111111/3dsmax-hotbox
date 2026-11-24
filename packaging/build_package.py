@@ -1,11 +1,11 @@
-"""Automated build & packaging script for MaxHotbox (Autodesk 3ds Max 2026).
+"""Automated build & packaging script for MaxHotbox (Autodesk 3ds Max 2026 / 2027).
 
 Generates inside `dist/`:
-  1. MaxHotbox.bundle/                   — Standard Autodesk Application Plugin Package
-  2. install.bat / uninstall.bat         — Double-click safe Windows installers
-  3. Load_MaxHotbox_Now.ms               — Immediate live loader for already-open Max 2026
-  4. MaxHotbox_v<ver>_Max2026.zip        — Standard release archive (bundle + installers + docs)
-  5. MaxHotbox_v<ver>_Max2026.mzp        — Drag-and-drop / Run Script 3ds Max 2026 installer
+  1. MaxHotbox.bundle/                        — Universal Autodesk Plugin Package (Max 2026 / 2027)
+  2. MaxHotbox_Manager.bat + manager.ps1      — All-in-one interactive multi-version manager
+  3. Load_MaxHotbox_Now.ms                    — Immediate live loader for already-open Max 2026/2027
+  4. MaxHotbox_v<ver>_Max2026_2027.zip        — Standard release archive (bundle + manager + docs)
+  5. MaxHotbox_v<ver>_Max2026_2027.mzp        — Drag-and-drop / Run Script Max 2026/2027 installer
 """
 
 from __future__ import annotations
@@ -25,11 +25,16 @@ PACKAGING_DIR = PROJECT_ROOT / "packaging"
 DIST_DIR = PROJECT_ROOT / "dist"
 
 
-def _read_plugin_meta() -> tuple[str, str, int]:
+def _read_plugin_meta() -> tuple[str, str, int, int]:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
-    from max_hotbox.constants import PLUGIN_NAME, PLUGIN_VERSION, TARGET_MAX_VERSION
+    from max_hotbox.constants import (
+        PLUGIN_NAME,
+        PLUGIN_VERSION,
+        TARGET_MAX_VERSION_MAX,
+        TARGET_MAX_VERSION_MIN,
+    )
 
-    return PLUGIN_NAME, PLUGIN_VERSION, TARGET_MAX_VERSION
+    return PLUGIN_NAME, PLUGIN_VERSION, TARGET_MAX_VERSION_MIN, TARGET_MAX_VERSION_MAX
 
 
 def _ignore_junk(_dir: str, names: list[str]) -> set[str]:
@@ -43,8 +48,8 @@ def _ignore_junk(_dir: str, names: list[str]) -> set[str]:
 def _copy_with_utf8_bom(src: Path, dst: Path) -> None:
     """Copy a MAXScript (.ms / .mcr) or PowerShell (.ps1) file ensuring UTF-8 BOM.
 
-    3ds Max MAXScript reads non-BOM files using system ANSI codepage (GBK on Chinese Windows),
-    which breaks UTF-8 Chinese strings unless UTF-8 BOM (EF BB BF) is present.
+    3ds Max MAXScript and Windows PowerShell 5.1 read non-BOM files using system ANSI codepage
+    (GBK on Chinese Windows), which breaks UTF-8 Chinese strings unless UTF-8 BOM (EF BB BF) is present.
     """
     text = src.read_text(encoding="utf-8-sig")
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -53,12 +58,19 @@ def _copy_with_utf8_bom(src: Path, dst: Path) -> None:
 
 def _ensure_source_boms() -> None:
     """Ensure all MAXScript and PowerShell source files carry UTF-8 BOM."""
+    # Ensure root MaxHotbox_Manager.bat uses pure ASCII + CRLF for cmd.exe safety
+    bat_src = PROJECT_ROOT / "MaxHotbox_Manager.bat"
+    if bat_src.exists():
+        bat_text = bat_src.read_text(encoding="ascii")
+        bat_src.write_text(bat_text, encoding="ascii", newline="\r\n")
+
     for path in (
         SRC_MAXSCRIPT / "MaxHotbox.mcr",
         SRC_MAXSCRIPT / "post_startup.ms",
         SRC_MAXSCRIPT / "uninstall_helper.ms",
         PACKAGING_DIR / "install_mzp.ms",
         PACKAGING_DIR / "Load_MaxHotbox_Now.ms",
+        PACKAGING_DIR / "manager.ps1",
         PACKAGING_DIR / "install.ps1",
         PACKAGING_DIR / "uninstall.ps1",
     ):
@@ -71,14 +83,14 @@ def _compile_check_python(py_root: Path) -> int:
     count = 0
     for py_file in sorted(py_root.rglob("*.py")):
         source = py_file.read_text(encoding="utf-8")
-        # Validate Python 3.11 syntax (Autodesk 3ds Max 2026 embedded Python)
+        # Validate Python 3.11 syntax (3ds Max 2026) — also fully compatible with Python 3.13 (3ds Max 2027)
         tree = ast.parse(source, filename=str(py_file), feature_version=(3, 11))
         compile(tree, str(py_file), "exec")
         count += 1
     return count
 
 
-def _validate_package_xml(bundle_dir: Path, target_version: int) -> None:
+def _validate_package_xml(bundle_dir: Path, min_version: int, max_version: int) -> None:
     xml_path = bundle_dir / "PackageContents.xml"
     if not xml_path.exists():
         raise FileNotFoundError(f"Missing {xml_path}")
@@ -94,9 +106,9 @@ def _validate_package_xml(bundle_dir: Path, target_version: int) -> None:
     for req in reqs:
         if req.attrib.get("Platform") != "3ds Max":
             raise ValueError(f"Unexpected Platform: {req.attrib.get('Platform')}")
-        if req.attrib.get("SeriesMin") != str(target_version) or req.attrib.get("SeriesMax") != str(target_version):
+        if req.attrib.get("SeriesMin") != str(min_version) or req.attrib.get("SeriesMax") != str(max_version):
             raise ValueError(
-                f"Expected SeriesMin/SeriesMax={target_version}, got {req.attrib}"
+                f"Expected SeriesMin={min_version}, SeriesMax={max_version}, got {req.attrib}"
             )
 
     entries = root.findall(".//ComponentEntry")
@@ -128,8 +140,8 @@ def _zip_directory(zf: zipfile.ZipFile, src_dir: Path, arc_prefix: str) -> None:
 
 def build() -> dict[str, Path]:
     _ensure_source_boms()
-    plugin_name, version, max_ver = _read_plugin_meta()
-    release_stem = f"{plugin_name}_v{version}_Max{max_ver}"
+    plugin_name, version, min_ver, max_ver = _read_plugin_meta()
+    release_stem = f"{plugin_name}_v{version}_Max{min_ver}_{max_ver}"
 
     bundle_dir = DIST_DIR / f"{plugin_name}.bundle"
     zip_path = DIST_DIR / f"{release_stem}.zip"
@@ -139,7 +151,15 @@ def build() -> dict[str, Path]:
     DIST_DIR.mkdir(parents=True, exist_ok=True)
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
-    for pattern in (f"{plugin_name}_v*.zip", f"{plugin_name}_v*.mzp", f"{plugin_name}_v*_SHA256.txt"):
+    for pattern in (
+        f"{plugin_name}_v*.zip",
+        f"{plugin_name}_v*.mzp",
+        f"{plugin_name}_v*_SHA256.txt",
+        "install.bat",
+        "uninstall.bat",
+        "install.ps1",
+        "uninstall.ps1",
+    ):
         for old_file in DIST_DIR.glob(pattern):
             old_file.unlink()
 
@@ -158,24 +178,20 @@ def build() -> dict[str, Path]:
     _copy_with_utf8_bom(SRC_MAXSCRIPT / "uninstall_helper.ms", scripts_dir / "uninstall_helper.ms")
     shutil.copytree(SRC_PYTHON, python_dir, ignore=_ignore_junk)
 
-    # Copy convenient top-level launchers into dist/ (self-contained!)
-    shutil.copy2(PROJECT_ROOT / "install.bat", DIST_DIR / "install.bat")
-    shutil.copy2(PROJECT_ROOT / "uninstall.bat", DIST_DIR / "uninstall.bat")
-    _copy_with_utf8_bom(PACKAGING_DIR / "install.ps1", DIST_DIR / "install.ps1")
-    _copy_with_utf8_bom(PACKAGING_DIR / "uninstall.ps1", DIST_DIR / "uninstall.ps1")
+    # Copy unified all-in-one manager & live loader into dist/ (self-contained!)
+    shutil.copy2(PROJECT_ROOT / "MaxHotbox_Manager.bat", DIST_DIR / "MaxHotbox_Manager.bat")
+    _copy_with_utf8_bom(PACKAGING_DIR / "manager.ps1", DIST_DIR / "manager.ps1")
     _copy_with_utf8_bom(PACKAGING_DIR / "Load_MaxHotbox_Now.ms", DIST_DIR / "Load_MaxHotbox_Now.ms")
 
     # 3. Validate bundle
     py_count = _compile_check_python(python_dir)
-    _validate_package_xml(bundle_dir, target_version=max_ver)
+    _validate_package_xml(bundle_dir, min_version=min_ver, max_version=max_ver)
 
     # 4. Build standard ZIP release archive
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         _zip_directory(zf, bundle_dir, f"{plugin_name}.bundle")
-        zf.write(PROJECT_ROOT / "install.bat", "install.bat")
-        zf.write(PROJECT_ROOT / "uninstall.bat", "uninstall.bat")
-        zf.write(PACKAGING_DIR / "install.ps1", "install.ps1")
-        zf.write(PACKAGING_DIR / "uninstall.ps1", "uninstall.ps1")
+        zf.write(PROJECT_ROOT / "MaxHotbox_Manager.bat", "MaxHotbox_Manager.bat")
+        zf.write(DIST_DIR / "manager.ps1", "manager.ps1")
         zf.write(DIST_DIR / "Load_MaxHotbox_Now.ms", "Load_MaxHotbox_Now.ms")
         for doc_name in ("README.md", "CHANGELOG.md"):
             doc_path = PROJECT_ROOT / doc_name
@@ -196,9 +212,9 @@ def build() -> dict[str, Path]:
     checksum_path = DIST_DIR / f"{release_stem}_SHA256.txt"
     checksum_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
 
-    print(f"[BUILD OK] Compiled {py_count} Python modules.")
+    print(f"[BUILD OK] Compiled {py_count} Python modules (Max {min_ver}–{max_ver}).")
     print(f"  Bundle   : {bundle_dir}")
-    print(f"  Install  : {DIST_DIR / 'install.bat'}")
+    print(f"  Manager  : {DIST_DIR / 'MaxHotbox_Manager.bat'}")
     print(f"  LiveLoad : {DIST_DIR / 'Load_MaxHotbox_Now.ms'}")
     print(f"  ZIP      : {zip_path} ({zip_path.stat().st_size:,} bytes)")
     print(f"  MZP      : {mzp_path} ({mzp_path.stat().st_size:,} bytes)")

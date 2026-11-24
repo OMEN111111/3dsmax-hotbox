@@ -2,6 +2,7 @@
 .text/
 tests/
 dist/
+downloads/
 AGENTS.md
 .agents/
 

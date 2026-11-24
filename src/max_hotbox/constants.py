@@ -1,11 +1,15 @@
-"""Core constants and identifiers for MaxHotbox (3ds Max 2026)."""
+"""Core constants and identifiers for MaxHotbox (3ds Max 2026 / 2027)."""
 
 from __future__ import annotations
 
 PLUGIN_NAME = "MaxHotbox"
 PLUGIN_DISPLAY_NAME = "MaxHotbox"
-PLUGIN_VERSION = "0.1.4"
+PLUGIN_VERSION = "0.1.5"
 TARGET_MAX_VERSION = 2026
+SUPPORTED_MAX_VERSIONS: tuple[int, ...] = (2026, 2027)
+TARGET_MAX_VERSION_MIN = 2026
+TARGET_MAX_VERSION_MAX = 2027
+GITHUB_REPO = "OMEN111111/3dsmax-hotbox"
 CONFIG_SCHEMA_VERSION = 5
 
 # Subclass ID used with comctl32.SetWindowSubclass (unique 32-bit magic id)
@@ -111,10 +115,10 @@ SAFE_COMMAND_MODES: frozenset[str] = frozenset(
     }
 )
 
-# Theme palettes — Default closely matches Autodesk 3ds Max 2026 Dark UI
+# Theme palettes — Default closely matches Autodesk 3ds Max 2026 / 2027 Dark UI
 THEMES: dict[str, dict[str, str]] = {
     "max2026_native": {
-        "name": "3ds Max 2026 原生深灰 (默认)",
+        "name": "3ds Max 原生深灰 (默认)",
         "bg": "#323232",
         "bg_alpha": "240",
         "panel": "#3D3D3D",

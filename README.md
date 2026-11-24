@@ -1,9 +1,9 @@
-# MaxHotbox — Maya-Style Hotbox & Marking Menu for 3ds Max 2026
+# MaxHotbox — Maya-Style Hotbox & Marking Menu for 3ds Max 2026 / 2027
 
-> **当前版本：`v0.1.4` (Beta 测试版)** · 适配 **Autodesk 3ds Max 2026 (Win64)** · 兼容中/英文界面
+> **当前版本：`v0.1.5` (Beta 测试版)** · 适配 **Autodesk 3ds Max 2026 & 2027 (Win64)** · 兼容中/英文界面
 
-**MaxHotbox** 是一款为 **Autodesk 3ds Max 2026** 打造的 **Maya 风格热盒（Hotbox）与多级径向标记菜单（Marking Menu）** 插件。  
-采用 **Win32 视口子类化 (`SetWindowSubclass`) + PySide6 (Qt 6.5) 悬浮渲染 + `pymxs`/MAXScript 解耦命令引擎 + Autodesk `.bundle` 标准打包**，在高度贴合 3ds Max 2026 原生深灰 UI 风格的同时，实现流畅的按住、划动、悬停展开、松开即执行的 Maya 式建模交互，并支持随时一键切换回原生四元菜单（Quad Menu）。
+**MaxHotbox** 是一款为 **Autodesk 3ds Max 2026 / 2027** 打造的 **Maya 风格热盒（Hotbox）与多级径向标记菜单（Marking Menu）** 插件。  
+采用 **Win32 视口子类化 (`SetWindowSubclass`) + PySide6 (Qt 6.5 / 6.8) 悬浮渲染 + `pymxs`/MAXScript 解耦命令引擎 + Autodesk `.bundle` 标准打包**，在高度贴合 3ds Max 原生深灰 UI 风格的同时，实现流畅的按住、划动、悬停展开、松开即执行的 Maya 式建模交互，并支持随时一键切换回原生四元菜单（Quad Menu）。
 
 ---
 
@@ -36,19 +36,20 @@
 
 ---
 
-## 一键安装与一键卸载（3ds Max 2026）
+## 多版本安装、卸载与自动更新（3ds Max 2026 / 2027）
 
-从 [Releases](https://github.com/OMEN111111/3dsmax-hotbox/releases) 下载 `MaxHotbox_v0.1.4_Max2026.zip`（或直接克隆本仓库）：
+从 [Releases](https://github.com/OMEN111111/3dsmax-hotbox/releases) 下载 `MaxHotbox_v0.1.5_Max2026_2027.zip`（或直接克隆本仓库）：
 
-### 方式一：一键安装脚本（最推荐）
-1. 双击根目录下的 **`install.bat`**（支持直接从压缩包、本地 `dist/` 或源码仓库一键组装并部署到 `%APPDATA%\Autodesk\ApplicationPlugins\MaxHotbox.bundle`）。
-2. 重启 **3ds Max 2026** 自动生效；若 Max 已打开不想重启，点击顶部菜单 **`脚本 (Scripting) -> 运行脚本 (Run Script)...`** 选择 `Load_MaxHotbox_Now.ms` 立即热重载激活。
+### 方式一：一体化插件管理器 `MaxHotbox_Manager.bat`（最推荐）
+双击根目录下的 **`MaxHotbox_Manager.bat`**，在终端菜单中输入对应数字即可完成全部管理操作（自动隔离 2026 与 2027 插件包，互不干扰）：
+- **`[1]` / `[2]` / `[3]`**：分别安装到 **3ds Max 2026**、**3ds Max 2027**，或一键安装到**全部支持版本**。
+- **`[4]` / `[5]` / `[6]`**：分别卸载 **3ds Max 2026**、**3ds Max 2027** 或**全部版本**（可按版本独立选择是否清理个人配置与日志）。
+- **`[7]`**：**检查插件更新** — 自动查询 GitHub 最新 Release 版本，支持一键下载 `.zip`/`.mzp` 到本地 `downloads/` 目录并自动校验 SHA-256 与解压。
+- **`[8]`**：**更新已安装到不同版本的插件** — 自动识别已安装 MaxHotbox 的 Max 版本，支持在线拉取 GitHub 最新版或使用本地包更新，**完整保留个人自定义热盒配置**。
+- 若 3ds Max 已打开不想重启，可在 Max 顶部点击 **`脚本 (Scripting) -> 运行脚本 (Run Script)...`** 选择 `Load_MaxHotbox_Now.ms` 立即热重载激活。
 
 ### 方式二：`.mzp` 单文件安装
-打开 **3ds Max 2026**，将 `MaxHotbox_v0.1.4_Max2026.mzp` 拖入视口（若管理员权限拦截拖拽，改用 **`脚本 -> 运行脚本...`** 选择该 `.mzp` 文件）即可一键安装并立即激活。
-
-### 一键卸载
-双击根目录下的 **`uninstall.bat`** 即可移除插件包，并可选择是否同时清理个人配置与日志。
+打开 **3ds Max 2026** 或 **3ds Max 2027**，将 `MaxHotbox_v0.1.5_Max2026_2027.mzp` 拖入视口（若管理员权限拦截拖拽，改用 **`脚本 -> 运行脚本...`** 选择该 `.mzp` 文件），脚本会自动识别当前运行的 Max 版本并安装对应版本包后立即激活。
 
 ---
 
@@ -56,18 +57,17 @@
 
 ```text
 3dsmax-hotbox/
-├── install.bat                # Windows 一键安装脚本
-├── uninstall.bat              # Windows 一键卸载脚本
+├── MaxHotbox_Manager.bat      # 一体化多版本安装 / 卸载 / 检查更新 / 升级管理器
 ├── README.md                  # 项目说明与使用指南
 ├── CHANGELOG.md               # 版本更新记录
 ├── src/
-│   ├── max_hotbox/            # 插件 Python 核心包 (适配 Max 2026 Python 3.11 + PySide6)
-│   └── maxscript/             # Max 2026 MacroScripts、启动引导与卸载辅助脚本
-└── packaging/                 # Autodesk .bundle 清单、.mzp 与安装/打包脚本
+│   ├── max_hotbox/            # 插件 Python 核心包 (兼容 Max 2026 Python 3.11 & Max 2027 Python 3.13 + PySide6)
+│   └── maxscript/             # Max 2026 / 2027 MacroScripts、启动引导与卸载辅助脚本
+└── packaging/                 # Autodesk .bundle 清单、.mzp、manager.ps1 与打包脚本
 ```
 
 ### 从源码自行打包
 ```powershell
 python .\packaging\build_package.py
 ```
-执行后会在本地 `dist/` 目录自动生成 `MaxHotbox.bundle/`、`MaxHotbox_v0.1.4_Max2026.zip`、`MaxHotbox_v0.1.4_Max2026.mzp`、`install.bat`、`uninstall.bat`、`install.ps1`、`uninstall.ps1`、`Load_MaxHotbox_Now.ms` 与 SHA-256 校验文件。
+执行后会在本地 `dist/` 目录自动生成 `MaxHotbox.bundle/`、`MaxHotbox_v0.1.5_Max2026_2027.zip`、`MaxHotbox_v0.1.5_Max2026_2027.mzp`、`MaxHotbox_Manager.bat`、`manager.ps1`、`Load_MaxHotbox_Now.ms` 与 SHA-256 校验文件。

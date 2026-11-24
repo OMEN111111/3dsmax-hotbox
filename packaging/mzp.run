@@ -1,5 +1,5 @@
 name "MaxHotbox"
-description "MaxHotbox for Autodesk 3ds Max 2026"
-version 0.14
+description "MaxHotbox for Autodesk 3ds Max 2026 / 2027"
+version 0.15
 
 run "install_mzp.ms"

@@ -1,5 +1,5 @@
 ﻿/*
- * MaxHotbox Runtime Unload Helper for Autodesk 3ds Max 2026
+ * MaxHotbox Runtime Unload Helper for Autodesk 3ds Max 2026 / 2027
  * Safely stops the active controller and removes registered UI callbacks.
  */
 

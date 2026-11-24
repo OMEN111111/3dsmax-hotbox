@@ -2,6 +2,24 @@
 
 All notable changes to **MaxHotbox** will be documented in this file.
 
+## [0.1.5] - 2026-11-24 (Beta Update)
+
+### Added
+- **Autodesk 3ds Max 2027 Support (Python 3.13 + PySide6 6.8)**:
+  - Verified full runtime compatibility on **3ds Max 2027.2** alongside **3ds Max 2026.3**.
+  - Updated `PackageContents.xml` to `SeriesMin="2026" SeriesMax="2027"` and upgraded `logger.py` (`get_running_max_year()` & `rt.getDir(#maxData)`) so each Max version automatically isolates its own `userconfig/MaxHotbox` configuration and rotating logs across any UI language (`CHS`/`ENU`).
+  - Updated `post_startup.ms`, `Load_MaxHotbox_Now.ms`, and `install_mzp.ms` to detect the active 3ds Max version and install/load per-version isolated bundles (`MaxHotbox_2026.bundle` / `MaxHotbox_2027.bundle`) with seamless legacy `MaxHotbox.bundle` migration.
+- **Unified All-in-One Multi-Version Manager (`MaxHotbox_Manager.bat` + `packaging/manager.ps1`)**:
+  - Consolidated installation, uninstallation, GitHub update checking/downloading, and multi-version plugin upgrading into a single interactive numbered `.bat` menu:
+    - `[1]/[2]/[3]` Install separately for **3ds Max 2026**, **3ds Max 2027**, or **All** versions.
+    - `[4]/[5]/[6]` Uninstall separately for **3ds Max 2026**, **3ds Max 2027**, or **All** versions (with per-version optional user config cleanup).
+    - `[7]` Check GitHub latest release (`OMEN111111/3dsmax-hotbox`), download assets to local `downloads/<tag>/`, verify SHA-256 checksums, and extract automatically.
+    - `[8]` Update already-installed Max versions selectively or all at once (online from GitHub or offline from local/downloaded packages) while preserving personal hotbox configs.
+
+### Changed
+- Replaced separate root `install.bat` and `uninstall.bat` with the single unified `MaxHotbox_Manager.bat` (CLI `packaging/install.ps1` and `packaging/uninstall.ps1` remain available as `-MaxVersion 2026|2027|All` wrappers).
+- Release archive naming updated to `MaxHotbox_v0.1.5_Max2026_2027.zip` / `.mzp` / `_SHA256.txt`.
+
 ## [0.1.4] - 2026-11-24 (Beta Update)
 
 ### Fixed
